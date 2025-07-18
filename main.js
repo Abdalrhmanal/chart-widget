@@ -1503,7 +1503,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { id: 'distribution', name: 'Distribution', icon: '📊', description: 'Display how data points are spread and their frequency.' },
         { id: 'relationship', name: 'Relationship', icon: '🔗', description: 'Explore how variables relate to each other.' },
         { id: 'evolution', name: 'Evolution', icon: '📈', description: 'Track changes in data over a continuous time dimension.' },
-        { id: 'flow', name: 'Flow/Process', icon: '�', description: 'Illustrate movement, sequences, or stages within a process.' },
+        { id: 'flow', name: 'Flow/Process', icon: '🌊', description: 'Illustrate movement, sequences, or stages within a process.' },
         { id: 'hierarchy', name: 'Hierarchy', icon: '🌳', description: 'Visualize parent-child relationships in data.' },
     ];
 
@@ -2014,7 +2014,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const recommendationsContainer = document.getElementById('chart-recommendations');
     const recommendationsSubtitle = document.getElementById('recommendations-subtitle');
     const fullGalleryContainer = document.getElementById('full-gallery');
-    const groupedDataStructureTableBody = document.querySelector('#grouped-data-structure-table tbody');
+    const detailedChartPropertiesTableBody = document.querySelector('#detailed-chart-properties-table tbody'); // Updated ID
 
     let selectedIntent = null;
     let selectedDataType = null;
@@ -2160,31 +2160,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function renderGroupedDataStructures() {
-        const groupedCharts = {};
+    // Updated function to render the detailed chart properties table
+    function renderDetailedChartPropertiesTable() {
+        detailedChartPropertiesTableBody.innerHTML = ''; // Clear existing content
+
         charts.forEach(chart => {
-            const structure = chart.sampleDataStructure;
-            if (!groupedCharts[structure]) {
-                groupedCharts[structure] = [];
-            }
-            groupedCharts[structure].push(chart.name);
-        });
-
-        for (const structure in groupedCharts) {
-            const row = groupedDataStructureTableBody.insertRow();
-            const chartNamesCell = row.insertCell();
+            const row = detailedChartPropertiesTableBody.insertRow();
+            
+            row.insertCell().textContent = chart.name;
+            row.insertCell().textContent = chart.description;
+            row.insertCell().textContent = chart.dimensionality;
+            row.insertCell().textContent = chart.groupingSupport;
+            row.insertCell().textContent = chart.typicalUseCases;
+            row.insertCell().textContent = chart.strengths;
+            row.insertCell().textContent = chart.weaknesses;
+            row.insertCell().textContent = chart.dataConstraints;
+            
             const dataStructureCell = row.insertCell();
-
-            chartNamesCell.className = 'py-3 px-4';
-            dataStructureCell.className = 'py-3 px-4';
-
-            chartNamesCell.textContent = groupedCharts[structure].join(', ');
-            dataStructureCell.innerHTML = `<pre><code class="language-javascript">${structure}</code></pre>`;
-        }
+            dataStructureCell.innerHTML = `<pre><code class="language-javascript">${chart.sampleDataStructure}</code></pre>`;
+        });
     }
     
     renderIntents();
     renderFullGallery();
     renderRecommendations();
-    renderGroupedDataStructures(); // Call the new function to render the table
+    renderDetailedChartPropertiesTable(); // Call the new function to render the detailed table
 });
