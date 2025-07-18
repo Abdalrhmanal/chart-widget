@@ -1,0 +1,62 @@
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px; /* Base height for D3 charts */
+            max-height: 400px;
+            display: flex; /* Ensure flex for centering SVG */
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff; /* White background for charts */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .intent-card.selected {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            border-color: #0d9488;
+        }
+        .datatype-btn.selected {
+            background-color: #0d9488;
+            color: white;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.85em;
+            color: #333;
+            white-space: pre-wrap; /* Ensures text wraps */
+            word-wrap: break-word; /* Ensures long words break */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #e5e7eb; /* Tailwind gray-200 */
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f9fafb; /* Tailwind gray-50 */
+            font-weight: 600;
+            color: #374151; /* Tailwind gray-700 */
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb; /* Tailwind gray-50 */
+        }

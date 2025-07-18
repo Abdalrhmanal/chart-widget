@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualization Selection Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script> <!-- D3.js CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Analytics -->
+    <!-- Application Structure Plan: The application is structured as an interactive 'Chart Chooser' wizard, rather than a linear report. This task-oriented design guides the user through the report's core decision-making process: first, selecting their 'Communicative Intent' (the 'why'), and second, their 'Data Structure' (the 'what'). This culminates in a dynamically generated list of recommended charts with visual examples and summarized details. This structure was chosen because it transforms the report's passive knowledge into an active, practical tool, which is a more effective method for learning and application than simply reading text. The user flow is designed to be intuitive: select goal -> select data -> see recommendations. Supplemental sections for a 'Chart Gallery' and 'Advanced Concepts' provide reference material without interrupting the primary user task. -->
+    <!-- Visualization & Content Choices: The core of the app is the interactive chooser. Intentions and data types are represented by clickable cards (HTML/Tailwind/JS) for clear, tactile interaction. Recommended charts are shown as cards containing a dynamic D3.js SVG visualization, giving an immediate visual example. Text content from the report (strengths, weaknesses) is summarized and placed alongside each chart for context. This method directly maps the report's selection matrix into a usable interface. For example: Report Info -> Comparison Intent -> Goal: Select this intent -> Viz: Clickable Card -> Interaction: JS onClick to filter options -> Justification: Guides user through the framework. Report Info -> Bar Chart Details -> Goal: Display as a recommendation -> Viz: D3.js SVG in a card -> Interaction: Hover tooltips (if implemented) -> Justification: Provides instant visual representation and details. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <link rel="stylesheet" href="style.css">
+    <script src="main.js" defer></script>
+    
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-teal-700">Data Visualization Selection Guide</h1>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#chooser" class="text-stone-600 hover:text-teal-600 transition duration-300">Chart Chooser</a>
+                <a href="#gallery" class="text-stone-600 hover:text-teal-600 transition duration-300">Chart Gallery</a>
+                <a href="#concepts" class="text-stone-600 hover:text-teal-600 transition duration-300">Advanced Concepts</a>
+                <a href="#data-structure-grouping" class="text-stone-600 hover:text-teal-600 transition duration-300">Grouped Data Structures</a>
+            </div>
+             <div class="md:hidden">
+                <select onchange="window.location.href=this.value" class="bg-stone-100 border border-stone-300 rounded-md p-2">
+                    <option value="#chooser">Chart Chooser</option>
+                    <option value="#gallery">Chart Gallery</option>
+                    <option value="#concepts">Advanced Concepts</option>
+                    <option value="#data-structure-grouping">Grouped Data Structures</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section id="intro" class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4 text-stone-900">Transform Your Data into Clear Insights</h2>
+            <p class="max-w-3xl mx-auto text-lg text-stone-600">
+                Welcome to the interactive guide for selecting the optimal data visualization. Inspired by "A Systematic Framework for the Classification and Application of Data Visualizations," this application is designed to help you make informed decisions by simplifying the chart selection process into logical steps. Start by defining your goal, then choose your data type, and get instant recommendations.
+            </p>
+        </section>
+
+        <section id="chooser" class="mb-20 bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-stone-200">
+            <div class="text-center mb-12">
+                <span class="text-teal-600 font-semibold">Step One</span>
+                <h3 class="text-2xl md:text-3xl font-bold mt-2">What is your primary communicative intent?</h3>
+                <p class="text-stone-500 mt-2 max-w-2xl mx-auto">Every chart answers a different question. Choose the goal that best describes what you want to convey with your data. This is the core principle of "Classification by Communicative Intent."</p>
+            </div>
+            <div id="intent-selector" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 text-center">
+            </div>
+
+            <div id="data-type-section" class="mt-12 text-center hidden">
+                 <span class="text-teal-600 font-semibold">Step Two</span>
+                <h3 class="text-2xl md:text-3xl font-bold mt-2">What is your data structure?</h3>
+                 <p class="text-stone-500 mt-2 max-w-2xl mx-auto">The nature of your data constrains your chart choices. Select the structure that matches the "ingredients" of your analysis.</p>
+                <div id="data-type-selector" class="flex flex-wrap justify-center gap-3 mt-6">
+                </div>
+            </div>
+        </section>
+
+        <section id="recommendations" class="mb-16">
+             <div class="text-center mb-8">
+                <h3 class="text-2xl md:text-3xl font-bold">Recommended Charts</h3>
+                <p id="recommendations-subtitle" class="text-stone-500 mt-2">Select an intent and data type to view recommendations.</p>
+            </div>
+            <div id="chart-recommendations" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            </div>
+        </section>
+
+        <hr class="my-20 border-stone-200">
+        
+        <section id="gallery" class="mb-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-stone-900">Comprehensive Chart Gallery</h2>
+                <p class="max-w-3xl mx-auto text-lg text-stone-600 mt-4">
+                    Browse all available chart types in this guide. This section serves as a comprehensive reference, where you can explore various visualizations to understand their capabilities and diverse applications. Use it to discover options or deepen your understanding of specific chart types.
+                </p>
+            </div>
+             <div id="full-gallery" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            </div>
+        </section>
+
+        <hr class="my-20 border-stone-200">
+
+        <section id="concepts" class="mb-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-stone-900">Advanced Concepts in Data Visualization</h2>
+                <p class="max-w-3xl mx-auto text-lg text-stone-600 mt-4">
+                   Effective data visualization goes beyond simply choosing the right chart. This section explores deeper concepts like handling multi-dimensional data and visualizing complex structures. Understanding these principles empowers you to tell richer, more accurate stories with your data.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h4 class="font-bold text-xl mb-2 text-teal-700">Univariate Visualization</h4>
+                    <p class="text-stone-600">This focuses on describing the characteristics of a single variable in isolation. The goal is to understand its distribution, central tendency, and spread. Charts like <span class="font-semibold">Histograms</span> and <span class="font-semibold">Box Plots</span> are primary tools here.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h4 class="font-bold text-xl mb-2 text-teal-700">Bivariate Visualization</h4>
+                    <p class="text-stone-600">Examines the relationship between two variables. This is the most common form of data visualization. Chart choice depends on data types: <span class="font-semibold">Scatter Plot</span> for two quantitative variables, <span class="font-semibold">Line Chart</span> for time and one quantitative variable, and <span class="font-semibold">Bar Chart</span> for one categorical and one quantitative variable.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
+                    <h4 class="font-bold text-xl mb-2 text-teal-700">Multivariate Visualization</h4>
+                    <p class="text-stone-600">Presents a significant design challenge as it requires displaying 3 or more dimensions simultaneously on a 2D surface. Techniques like <span class="font-semibold">Size</span> (in bubble charts), <span class="font-semibold">Color</span>, <span class="font-semibold">Shape</span>, and <span class="font-semibold">Small Multiples (Faceting)</span> are used to encode additional information dimensions.</p>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-20 border-stone-200">
+
+        <section id="data-structure-grouping" class="mb-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-stone-900">Charts by Data Structure</h2>
+                <p class="max-w-3xl mx-auto text-lg text-stone-600 mt-4">
+                    This table shows charts that share the same fundamental data structure. This helps you understand how to prepare your data to be compatible with multiple chart types.
+                </p>
+            </div>
+            <div class="overflow-x-auto bg-white p-6 rounded-xl shadow-lg border border-stone-200">
+                <table id="grouped-data-structure-table" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="py-3 px-4 text-left">Compatible Charts</th>
+                            <th class="py-3 px-4 text-left">Required Data Structure</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Table rows will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-stone-800 text-white mt-20">
+        <div class="container mx-auto p-6 text-center text-stone-400">
+            <p>This interactive application was developed by Gemini to illustrate concepts from "A Systematic Framework for the Classification and Application of Data Visualizations."</p>
+            <p class="text-sm mt-2">&copy; 2025 - All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
+�
