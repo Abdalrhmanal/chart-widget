@@ -1531,8 +1531,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, Grouped',
             dataConstraints: 'Requires categorical data on one axis and quantitative data on the other. Value axis must start at zero.',
             typicalUseCases: 'Comparing sales by product, number of students by major, showing frequencies for categories.',
-            strengths: 'Clear, intuitive comparison of magnitudes across discrete categories. Highly effective when the axis starts from zero.',
-            weaknesses: 'Becomes cluttered and unreadable with >15 categories. Starting from a non-zero axis dramatically exaggerates differences misleadingly.',
+           // strengths: 'Clear, intuitive comparison of magnitudes across discrete categories. Highly effective when the axis starts from zero.',
+           // weaknesses: 'Becomes cluttered and unreadable with >15 categories. Starting from a non-zero axis dramatically exaggerates differences misleadingly.',
             sampleDataStructure: `const data = [
     { category: 'Category A', value: 150 },
     { category: 'Category B', value: 200 },
@@ -1550,8 +1550,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Grouped',
             dataConstraints: 'Requires two categorical variables and one quantitative variable.',
             typicalUseCases: 'Comparing product sales across different regions, student performance in multiple subjects by gender.',
-            strengths: 'Effective for comparing values both within and across categories.',
-            weaknesses: 'Can become visually complex with too many series or categories.',
+           // strengths: 'Effective for comparing values both within and across categories.',
+           // weaknesses: 'Can become visually complex with too many series or categories.',
             sampleDataStructure: `const data = {
     labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
     datasets: [{
@@ -1574,8 +1574,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a single performance value, a target, and qualitative ranges (optional).',
             typicalUseCases: 'Monitoring performance against goals, dashboards, progress reports.',
-            strengths: 'Space-efficient alternative to dashboard gauges, clearly shows performance against target and qualitative ranges.',
-            weaknesses: 'Specific to a narrow use case (one measure vs. target). Does not show full data distribution.',
+          // strengths: 'Space-efficient alternative to dashboard gauges, clearly shows performance against target and qualitative ranges.',
+          // weaknesses: 'Specific to a narrow use case (one measure vs. target). Does not show full data distribution.',
             sampleDataStructure: `const data = {
     value: 75, // Current value
     target: 80, // Target value
@@ -1593,8 +1593,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Multiple Lines',
             dataConstraints: 'Requires time data on one axis (usually X) and quantitative data on the other. Ideal for sequential data.',
             typicalUseCases: 'Tracking stock prices, population growth, monthly temperatures.',
-            strengths: 'Excellent for showing trends and changes over time. Handles many data points well. Does not require a zero baseline.',
-            weaknesses: 'Can be highly misleading if used for non-sequential categorical data, as it falsely implies a continuous relationship.',
+          //  strengths: 'Excellent for showing trends and changes over time. Handles many data points well. Does not require a zero baseline.',
+          //  weaknesses: 'Can be highly misleading if used for non-sequential categorical data, as it falsely implies a continuous relationship.',
             sampleDataStructure: `const data = {
     labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
     datasets: [{
@@ -1617,8 +1617,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires categorical and quantitative data. Effective when a zero baseline is not necessary.',
             typicalUseCases: 'Comparing performance across groups, showing change between two time points.',
-            strengths: 'Reduces visual clutter compared to bar charts, effective when a zero baseline is not meaningful.',
-            weaknesses: 'Can become cluttered with too many categories or very similar values.',
+          //  strengths: 'Reduces visual clutter compared to bar charts, effective when a zero baseline is not meaningful.',
+          //  weaknesses: 'Can become cluttered with too many categories or very similar values.',
             sampleDataStructure: `const data = {
     labels: ['Category A', 'Category B', 'Category C'], // Categories
     datasets: [{
@@ -1638,8 +1638,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A (Compares profiles)',
             dataConstraints: 'Requires multiple quantitative variables for the same entities.',
             typicalUseCases: 'Evaluating products across a range of features, comparing student performance profiles.',
-            strengths: 'Useful for comparing the profiles of different items across a range of features.',
-            weaknesses: 'Effectiveness diminishes rapidly as the number of variables increases, as the chart can become a confusing web of overlapping polygons.',
+         //  strengths: 'Useful for comparing the profiles of different items across a range of features.',
+         //  weaknesses: 'Effectiveness diminishes rapidly as the number of variables increases, as the chart can become a confusing web of overlapping polygons.',
             sampleDataStructure: `const data = {
     labels: ['Feature 1', 'Feature 2', 'Feature 3'], // Axis/feature names
     datasets: [{
@@ -1662,8 +1662,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires values for the same categories at two distinct time points.',
             typicalUseCases: 'Tracking changes in rankings, comparing results before and after an intervention.',
-            strengths: 'Clearly and efficiently highlights which categories have increased, decreased, or stayed the same, and by how much.',
-            weaknesses: 'Becomes cluttered with too many categories or if changes are very small.',
+          //  strengths: 'Clearly and efficiently highlights which categories have increased, decreased, or stayed the same, and by how much.',
+          //  weaknesses: 'Becomes cluttered with too many categories or if changes are very small.',
             sampleDataStructure: `const data = [
     { category: 'Category A', before: 10, after: 15 },
     { category: 'Category B', before: 20, after: 18 },
@@ -1681,8 +1681,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires data representing parts of a whole, with very few categories (ideally 5 or fewer).',
             typicalUseCases: 'Budget allocation, market share, simple survey results.',
-            strengths: 'Simple, intuitive display of part-to-whole proportions for few categories.',
-            weaknesses: 'Humans are poor at judging angles accurately. Becomes totally ineffective with too many slices. Often misused for comparing values between different pies.',
+          //  strengths: 'Simple, intuitive display of part-to-whole proportions for few categories.',
+          //  weaknesses: 'Humans are poor at judging angles accurately. Becomes totally ineffective with too many slices. Often misused for comparing values between different pies.',
             sampleDataStructure: `const data = {
     labels: ['Part 1', 'Part 2', 'Part 3'], // Names of the parts
     datasets: [{
@@ -1701,8 +1701,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, 100% Stacked',
             dataConstraints: 'Requires a quantitative variable broken down by two categorical variables (or one category and time).',
             typicalUseCases: 'Sales composition by product per quarter, population distribution by age group and gender.',
-            strengths: 'Shows part-to-whole composition within each category while allowing comparison of totals.',
-            weaknesses: 'Difficult to compare individual segment sizes across bars unless they are at the base. Can become complex with many segments.',
+          //  strengths: 'Shows part-to-whole composition within each category while allowing comparison of totals.',
+          //  weaknesses: 'Difficult to compare individual segment sizes across bars unless they are at the base. Can become complex with many segments.',
             sampleDataStructure: `const data = {
     labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
     datasets: [{
@@ -1725,8 +1725,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, 100% Stacked',
             dataConstraints: 'Requires time data on the X-axis, and multiple quantitative variables representing parts of a whole.',
             typicalUseCases: 'Evolution of market share over time, composition of government spending over years.',
-            strengths: 'Combines displaying evolution over time with composition, showing how parts of a whole change.',
-            weaknesses: 'Can be difficult to read lower lines accurately. Can be misleading if ordering is not logical.',
+          //  strengths: 'Combines displaying evolution over time with composition, showing how parts of a whole change.',
+          //  weaknesses: 'Can be difficult to read lower lines accurately. Can be misleading if ordering is not logical.',
             sampleDataStructure: `const data = {
     labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
     datasets: [{
@@ -1749,8 +1749,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Nested',
             dataConstraints: 'Requires data with a clear parent-child hierarchical structure and a quantitative value for each node.',
             typicalUseCases: 'Budget allocation, file sizes on a hard drive, company organizational structure.',
-            strengths: 'Space-efficient display of large, hierarchical part-to-whole data. Shows the relative size of each element.',
-            weaknesses: 'Difficult to precisely compare areas. Can become unreadable with very deep hierarchies or many small items.',
+          //  strengths: 'Space-efficient display of large, hierarchical part-to-whole data. Shows the relative size of each element.',
+          //  weaknesses: 'Difficult to precisely compare areas. Can become unreadable with very deep hierarchies or many small items.',
             sampleDataStructure: `const data = {
     name: "Root",
     children: [
@@ -1773,8 +1773,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a single percentage or multiple percentages that sum to 100%.',
             typicalUseCases: 'Illustrating progress towards a goal, representing percentages in reports.',
-            strengths: 'Highly intuitive and visually engaging for concretely communicating percentages.',
-            weaknesses: 'Not suitable for a large number of categories. Does not show precise details.',
+          //  strengths: 'Highly intuitive and visually engaging for concretely communicating percentages.',
+          //  weaknesses: 'Not suitable for a large number of categories. Does not show precise details.',
             sampleDataStructure: `const data = {
     percentage: 75 // A single percentage
 };
@@ -1795,8 +1795,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a continuous quantitative variable. Relies on "bins" to group data.',
             typicalUseCases: 'Distribution of customer ages, test scores, income distribution.',
-            strengths: 'Clearly shows the frequency distribution of a single continuous variable. Crucial in exploratory data analysis.',
-            weaknesses: 'Shape is highly dependent on the choice of bin width. Not for categorical data.',
+          //  strengths: 'Clearly shows the frequency distribution of a single continuous variable. Crucial in exploratory data analysis.',
+          //  weaknesses: 'Shape is highly dependent on the choice of bin width. Not for categorical data.',
             sampleDataStructure: `const data = [
     10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58 // List of raw values
 ];`,
@@ -1812,8 +1812,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a continuous quantitative variable.',
             typicalUseCases: 'Understanding the shape of data distribution, identifying hidden patterns.',
-            strengths: 'Provides a clearer view of the underlying shape of data distribution compared to a histogram, especially with large datasets.',
-            weaknesses: 'May obscure fine details of the distribution compared to a raw histogram.',
+          //  strengths: 'Provides a clearer view of the underlying shape of data distribution compared to a histogram, especially with large datasets.',
+          //  weaknesses: 'May obscure fine details of the distribution compared to a raw histogram.',
             sampleDataStructure: `const data = [
     10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58 // List of raw values
 ];`,
@@ -1829,8 +1829,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Faceted',
             dataConstraints: 'Requires a quantitative variable and a categorical variable for grouping.',
             typicalUseCases: 'Comparing distributions of variables across multiple groups, identifying outliers.',
-            strengths: 'Compactly summarizes and compares distributions across multiple groups; highlights outliers effectively.',
-            weaknesses: 'Hides the underlying shape of the distribution (e.g., bimodality).',
+          //  strengths: 'Compactly summarizes and compares distributions across multiple groups; highlights outliers effectively.',
+          //  weaknesses: 'Hides the underlying shape of the distribution (e.g., bimodality).',
             sampleDataStructure: `const data = {
     labels: ['Group A', 'Group B'], // Group names
     datasets: [{
@@ -1853,8 +1853,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Faceted',
             dataConstraints: 'Requires a quantitative variable and a categorical variable for grouping.',
             typicalUseCases: 'Understanding the full distribution of data across groups, identifying multi-modal distributions.',
-            strengths: 'Provides a much richer understanding than a standard box plot, as it reveals the shape of the distribution.',
-            weaknesses: 'More complex to interpret than a simple box plot. Can become cluttered with many groups.',
+          //  strengths: 'Provides a much richer understanding than a standard box plot, as it reveals the shape of the distribution.',
+          //  weaknesses: 'More complex to interpret than a simple box plot. Can become cluttered with many groups.',
             sampleDataStructure: `const data = {
     labels: ['Group A', 'Group B'], // Group names
     datasets: [{
@@ -1877,8 +1877,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color/Shape Coding',
             dataConstraints: 'Requires two continuous quantitative variables.',
             typicalUseCases: 'Revealing correlations, identifying clusters and outliers, understanding patterns.',
-            strengths: 'The gold standard for showing correlation and relationship between two continuous variables. Reveals form, direction, and strength of a relationship.',
-            weaknesses: 'Can suffer from overplotting with very large datasets, making individual points indistinguishable.',
+          //  strengths: 'The gold standard for showing correlation and relationship between two continuous variables. Reveals form, direction, and strength of a relationship.',
+          //  weaknesses: 'Can suffer from overplotting with very large datasets, making individual points indistinguishable.',
             sampleDataStructure: `const data = {
     datasets: [{
         label: 'Points',
@@ -1901,8 +1901,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color Coding',
             dataConstraints: 'Requires three quantitative variables.',
             typicalUseCases: 'Analyzing GDP, life expectancy, and population; comparing companies by revenue, profit, and employee count.',
-            strengths: 'Extends a scatter plot to encode a third dimension using bubble size.',
-            weaknesses: 'Human perception of area is less precise than position, making the 3rd variable harder to judge.',
+          //  strengths: 'Extends a scatter plot to encode a third dimension using bubble size.',
+          //  weaknesses: 'Human perception of area is less precise than position, making the 3rd variable harder to judge.',
             sampleDataStructure: `const data = {
     datasets: [{
         label: 'Bubble Points',
@@ -1924,8 +1924,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Grid',
             dataConstraints: 'Requires two variables (categorical or quantitative) where the relationship or density is represented by color.',
             typicalUseCases: 'Correlation matrices, cross-tabulations, density maps for very large datasets.',
-            strengths: 'Efficiently shows relationships between two categorical variables or density in large datasets. Good for identifying patterns in tabular data.',
-            weaknesses: 'Can be difficult to interpret precise values without labels. Highly dependent on color scale choice.',
+          //  strengths: 'Efficiently shows relationships between two categorical variables or density in large datasets. Good for identifying patterns in tabular data.',
+          //  weaknesses: 'Can be difficult to interpret precise values without labels. Highly dependent on color scale choice.',
             sampleDataStructure: `const data = [
     { x: 'Category A', y: 'Property 1', value: 10 },
     { x: 'Category A', y: 'Property 2', value: 20 },
@@ -1944,8 +1944,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires flow data (source, target, quantity/weight).',
             typicalUseCases: 'Energy flow, customer conversion funnels, money flow, user paths.',
-            strengths: 'Excellent for visualizing the magnitude of flows through a multi-stage process. Highlights bottlenecks or main pathways.',
-            weaknesses: 'Requires specific data structure. Can become cluttered with too many flows or complex stages.',
+         //   strengths: 'Excellent for visualizing the magnitude of flows through a multi-stage process. Highlights bottlenecks or main pathways.',
+         //   weaknesses: 'Requires specific data structure. Can become cluttered with too many flows or complex stages.',
             sampleDataStructure: `const data = {
     nodes: [ // List of nodes/stages
         { id: 'Source 1' }, { id: 'Source 2' },
@@ -1972,8 +1972,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires data with interconnected relationships (parent-child or network connections).',
             typicalUseCases: 'Organizational charts, social networks, website maps, file categorization.',
-            strengths: 'Visually represents complex relationships between entities. Can clearly show hierarchies or connections.',
-            weaknesses: 'Can become messy and unreadable with many nodes or links. Difficult to discern patterns in large networks.',
+          //  strengths: 'Visually represents complex relationships between entities. Can clearly show hierarchies or connections.',
+          //  weaknesses: 'Can become messy and unreadable with many nodes or links. Difficult to discern patterns in large networks.',
             sampleDataStructure: `const data = {
     nodes: [ // List of nodes
         { id: 'A', name: 'Node A' },
@@ -1997,8 +1997,8 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color Coding',
             dataConstraints: 'Requires many quantitative variables.',
             typicalUseCases: 'Discovering patterns in high-dimensional data, comparing entity profiles.',
-            strengths: 'Allows visualization of many dimensions at once. Good for identifying clusters and patterns in multivariate data.',
-            weaknesses: 'Can become cluttered with many data points or variables. Difficult to read precise values.',
+          //  strengths: 'Allows visualization of many dimensions at once. Good for identifying clusters and patterns in multivariate data.',
+          //  weaknesses: 'Can become cluttered with many data points or variables. Difficult to read precise values.',
             sampleDataStructure: `const data = [
     { var1: 10, var2: 50, var3: 20 },
     { var1: 20, var2: 40, var3: 25 },
@@ -2172,8 +2172,8 @@ document.addEventListener('DOMContentLoaded', function () {
             row.insertCell().textContent = chart.dimensionality;
             row.insertCell().textContent = chart.groupingSupport;
             row.insertCell().textContent = chart.typicalUseCases;
-            row.insertCell().textContent = chart.strengths;
-            row.insertCell().textContent = chart.weaknesses;
+           /*  row.insertCell().textContent = chart.strengths;
+            row.insertCell().textContent = chart.weaknesses; */
             row.insertCell().textContent = chart.dataConstraints;
             
             const dataStructureCell = row.insertCell();
