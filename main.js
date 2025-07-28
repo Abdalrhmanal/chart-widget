@@ -1,20 +1,72 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // D3.js rendering functions
-    // Note: For simplicity and to avoid complex data parsing/evaluation from string,
-    // exampleData is hardcoded within each D3 function, mirroring the sampleDataStructure.
-    // In a real application, you would parse the sampleDataStructure string or pass actual data.
+    /**
+     * Parses the sampleDataStructure string into a JavaScript object.
+     * @param {string} dataStructureString - The string representation of the data structure.
+     * @returns {any} The parsed data object.
+     */
+    function parseSampleDataStructure(dataStructureString) {
+        // Remove 'const data = ' and trailing semicolon if present
+        const cleanString = dataStructureString.replace(/const data = /, '').trim().replace(/;$/, '');
+        try {
+            // Use eval for simplicity given the controlled environment and known data format.
+            // In a production environment with untrusted input, a more secure parser would be needed.
+            return eval(`(${cleanString})`);
+        } catch (e) {
+            console.error("Error parsing sample data structure:", e);
+            return []; // Return empty or default on error
+        }
+    }
 
-    function renderBarChart(containerId) {
-        const exampleData = [
-            { category: 'Product A', value: 65 },
-            { category: 'Product B', value: 59 },
-            { category: 'Product C', value: 80 },
-            { category: 'Product D', value: 81 }
-        ];
+    /**
+     * Adds a legend to the SVG.
+     * @param {d3.Selection} svg - The D3 selection of the main chart group (already translated by margins).
+     * @param {Array<string>} legendItems - Array of strings for legend labels.
+     * @param {d3.ScaleOrdinal} colorScale - The D3 color scale used in the chart.
+     * @param {number} chartWidth - Width of the actual chart drawing area (excluding margins).
+     * @param {number} topMargin - Top margin used for the chart.
+     * @param {number} xOffset - Additional X offset for the legend.
+     * @param {number} yOffset - Additional Y offset for the legend.
+     */
+    function addLegend(svg, legendItems, colorScale, chartWidth, topMargin, xOffset = 0, yOffset = 0) {
+        const legend = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${xOffset}, ${-topMargin + 10 + yOffset})`); // Position at top-left of chart area, within top margin
+
+        let currentX = 0;
+        legendItems.forEach((item, i) => {
+            const legendRow = legend.append("g")
+                .attr("transform", `translate(${currentX}, 0)`);
+
+            legendRow.append("rect")
+                .attr("width", 12)
+                .attr("height", 12)
+                .attr("fill", colorScale(item))
+                .attr("rx", 3)
+                .attr("ry", 3)
+                .attr("stroke", "#ccc")
+                .attr("stroke-width", 0.5);
+
+            const textElement = legendRow.append("text")
+                .attr("x", 18)
+                .attr("y", 6)
+                .attr("dy", "0.35em")
+                .style("text-anchor", "start")
+                .style("font-size", "10px")
+                .text(item);
+
+            const textWidth = textElement.node().getBBox().width;
+            currentX += 12 + 6 + textWidth + 15; // Rect width + spacing + text width + padding for next item
+        });
+    }
+
+    // D3.js rendering functions
+    function renderBarChart(containerId, chartData) {
+        // Data structure: [{ label: 'Category A', value: 100, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html(''); // Clear previous content
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 }; // Increased bottom/left for labels
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 }; // Increased margins for labels and legend
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -24,35 +76,61 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Categorical scale
         const x = d3.scaleBand()
             .range([0, width])
             .padding(0.1)
-            .domain(exampleData.map(d => d.category));
+            .domain(exampleData.map(d => d.label));
 
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
             .range([height, 0])
             .domain([0, d3.max(exampleData, d => d.value) * 1.1]); // Add some padding to top
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x))
             .selectAll("text")
             .attr("transform", "translate(-10,0)rotate(-45)")
-            .style("text-anchor", "end");
+            .style("text-anchor", "end")
+            .style("font-size", "10px"); // Smaller font for labels
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Category");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Bars
         svg.selectAll(".bar")
             .data(exampleData)
             .enter().append("rect")
             .attr("class", "bar")
-            .attr("x", d => x(d.category))
+            .attr("x", d => x(d.label))
             .attr("width", x.bandwidth())
             .attr("y", d => y(d.value))
             .attr("height", d => height - y(d.value))
             .attr("fill", "#14b8a6"); // Tailwind teal-500
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -60,19 +138,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Product Sales Comparison");
+
+        // No legend needed for single-color bar chart
     }
 
-    function renderGroupedBarChart(containerId) {
-        const exampleData = [
-            { category: 'Q1', 'Product A': 30, 'Product B': 20 },
-            { category: 'Q2', 'Product A': 40, 'Product B': 25 },
-            { category: 'Q3', 'Product A': 20, 'Product B': 35 }
-        ];
-        const keys = ['Product A', 'Product B']; // Data series
+    function renderGroupedBarChart(containerId, chartData) {
+        // Data structure: [{ label: 'Q1', series: { 'Sales A': 30, 'Sales B': 20, 'Sales C': 15 }, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        // Dynamically get series keys from the 'series' object of the first data item
+        const keys = Object.keys(exampleData[0].series);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -82,37 +160,64 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // Outer X scale for main categories (Q1, Q2, Q3)
         const x0 = d3.scaleBand()
-            .domain(exampleData.map(d => d.category))
+            .domain(exampleData.map(d => d.label))
             .rangeRound([0, width])
             .paddingInner(0.1);
 
+        // Inner X scale for series within each category (Sales A, Sales B, Sales C)
         const x1 = d3.scaleBand()
             .domain(keys)
             .rangeRound([0, x0.bandwidth()])
             .padding(0.05);
 
+        // Y scale for values
         const y = d3.scaleLinear()
-            .domain([0, d3.max(exampleData, d => d3.max(keys, key => d[key])) * 1.1])
+            .domain([0, d3.max(exampleData, d => d3.max(keys, key => d.series[key])) * 1.1])
             .rangeRound([height, 0]);
 
+        // Color scale for series
         const color = d3.scaleOrdinal()
-            .range(["#14b8a6", "#3b82f6"]); // Tailwind teal-500, blue-500
+            .range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]); // Tailwind teal, blue, orange, purple
 
+        // Append X0 axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x0));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Quarter");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Sales Value");
+
+        // Create groups for each main category
         const category = svg.selectAll(".category")
             .data(exampleData)
             .enter().append("g")
-            .attr("transform", d => `translate(${x0(d.category)},0)`);
+            .attr("transform", d => `translate(${x0(d.label)},0)`);
 
+        // Append bars for each series within categories
         category.selectAll("rect")
-            .data(d => keys.map(key => ({ key: key, value: d[key] })))
+            .data(d => keys.map(key => ({ key: key, value: d.series[key] }))) // Access value from 'series' object
             .enter().append("rect")
             .attr("x", d => x1(d.key))
             .attr("y", d => y(d.value))
@@ -120,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("height", d => height - y(d.value))
             .attr("fill", d => color(d.key));
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -127,21 +233,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Product Sales by Quarter");
+
+        // Legend
+        addLegend(svg, keys, color, width, margin.top);
     }
 
-    function renderLineChart(containerId) {
-        const exampleData = [
-            { date: 'Jan', value: 30 },
-            { date: 'Feb', value: 45 },
-            { date: 'Mar', value: 42 },
-            { date: 'Apr', value: 55 },
-            { date: 'May', value: 60 },
-            { date: 'Jun', value: 58 }
-        ];
+    function renderLineChart(containerId, chartData) {
+        // Data structure: [{ label: 'Jan', series: { 'Sales A': 30, 'Sales B': 20 }, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const keys = Object.keys(exampleData[0].series); // Get series keys from 'series' object
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -151,33 +255,64 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        const x = d3.scalePoint() // Use scalePoint for categorical labels
+        // X-axis: Point scale for time labels
+        const x = d3.scalePoint()
             .range([0, width])
             .padding(0.5)
-            .domain(exampleData.map(d => d.date));
+            .domain(exampleData.map(d => d.label));
 
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
             .range([height, 0])
-            .domain([0, d3.max(exampleData, d => d.value) * 1.1]);
+            .domain([0, d3.max(exampleData, d => d3.max(keys, key => d.series[key])) * 1.1]); // Max across all series
 
+        // Color scale for lines
+        const color = d3.scaleOrdinal()
+            .range(["#0d9488", "#3b82f6", "#f97316", "#a855f7"]); // Teal, Blue, Orange, Purple
+
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Month");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
-        const line = d3.line()
-            .x(d => x(d.date))
-            .y(d => y(d.value));
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Profit");
 
-        svg.append("path")
-            .datum(exampleData)
-            .attr("fill", "none")
-            .attr("stroke", "#0d9488") // Tailwind teal-700
-            .attr("stroke-width", 2)
-            .attr("d", line);
+        // Line generator for each series
+        keys.forEach(key => {
+            const line = d3.line()
+                .x(d => x(d.label))
+                .y(d => y(d.series[key])); // Access value from 'series' object
 
+            svg.append("path")
+                .datum(exampleData)
+                .attr("fill", "none")
+                .attr("stroke", color(key))
+                .attr("stroke-width", 2)
+                .attr("d", line);
+        });
+
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -185,19 +320,18 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Tracking Profit Over Time");
+
+        // Legend
+        addLegend(svg, keys, color, width, margin.top);
     }
 
-    function renderDotPlot(containerId) {
-        const exampleData = [
-            { category: 'Category A', value: 50 },
-            { category: 'Category B', value: 70 },
-            { category: 'Category C', value: 45 },
-            { category: 'Category D', value: 60 }
-        ];
+    function renderDotPlot(containerId, chartData) {
+        // Data structure: [{ label: 'Category A', value: 50, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -207,31 +341,56 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Point scale for categorical labels
         const x = d3.scalePoint()
             .range([0, width])
             .padding(0.5)
-            .domain(exampleData.map(d => d.category));
+            .domain(exampleData.map(d => d.label));
 
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
             .range([height, 0])
             .domain([0, d3.max(exampleData, d => d.value) * 1.1]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Category");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Dots
         svg.selectAll(".dot")
             .data(exampleData)
             .enter().append("circle")
             .attr("class", "dot")
-            .attr("cx", d => x(d.category))
+            .attr("cx", d => x(d.label))
             .attr("cy", d => y(d.value))
             .attr("r", 5)
             .attr("fill", "#f97316"); // Tailwind orange-500
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -239,52 +398,43 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Comparing Values with Dots");
+
+        // No legend needed for single-color dot plot
     }
 
-    function renderRadarChart(containerId) {
-        const exampleData = [
-            { axis: 'Strength', value: 65 },
-            { axis: 'Speed', value: 59 },
-            { axis: 'Intelligence', value: 90 },
-            { axis: 'Agility', value: 81 },
-            { axis: 'Stamina', value: 56 }
-        ];
-        const exampleData2 = [
-            { axis: 'Strength', value: 28 },
-            { axis: 'Speed', value: 48 },
-            { axis: 'Intelligence', value: 40 },
-            { axis: 'Agility', value: 19 },
-            { axis: 'Stamina', value: 96 }
-        ];
-
+    function renderRadarChart(containerId, chartData) {
+        // Data structure: [{ label: 'Player A', Strength: 65, Speed: 59, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        // All keys except 'label' are axes
+        const allAxis = Object.keys(exampleData[0]).filter(key => key !== 'label'); 
+        
         const container = d3.select(`#${containerId}`);
         container.html('');
         const width = container.node().clientWidth;
         const height = container.node().clientHeight;
-        const radius = Math.min(width, height) / 2 - 30;
+        const radius = Math.min(width, height) / 2 - 50; // More space for labels and legend
 
         const svg = container.append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
-            .attr("transform", `translate(${width / 2},${height / 2})`);
+            .attr("transform", `translate(${width / 2},${height / 2})`); // Centered group
 
-        const allAxis = exampleData.map(d => d.axis);
         const total = allAxis.length;
         const angleSlice = Math.PI * 2 / total;
 
         const rScale = d3.scaleLinear()
             .range([0, radius])
-            .domain([0, 100]); // Assuming max value is 100
+            .domain([0, d3.max(exampleData, d => d3.max(allAxis, axis => d[axis])) * 1.1]); // Dynamic max domain
 
         const radarLine = d3.lineRadial()
             .curve(d3.curveCardinalClosed)
             .radius(d => rScale(d.value))
             .angle((d, i) => i * angleSlice);
 
-        // Draw circles for background
+        // Draw circles for background (grid)
         svg.selectAll("circle")
-            .data([10, 25, 50, 75, 100])
+            .data(d3.range(0, rScale.domain()[1], rScale.domain()[1] / 5)) // Create 5 circles
             .enter().append("circle")
             .attr("r", d => rScale(d))
             .style("fill", "none")
@@ -300,32 +450,36 @@ document.addEventListener('DOMContentLoaded', function () {
         axis.append("line")
             .attr("x1", 0)
             .attr("y1", 0)
-            .attr("x2", (d, i) => rScale(100) * Math.cos(angleSlice * i - Math.PI / 2))
-            .attr("y2", (d, i) => rScale(100) * Math.sin(angleSlice * i - Math.PI / 2))
+            .attr("x2", (d, i) => rScale(rScale.domain()[1]) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("y2", (d, i) => rScale(rScale.domain()[1]) * Math.sin(angleSlice * i - Math.PI / 2))
             .attr("stroke", "#ccc")
             .attr("stroke-width", 1);
 
+        // Axis labels
         axis.append("text")
-            .attr("x", (d, i) => (rScale(100) + 10) * Math.cos(angleSlice * i - Math.PI / 2))
-            .attr("y", (d, i) => (rScale(100) + 10) * Math.sin(angleSlice * i - Math.PI / 2))
+            .attr("x", (d, i) => (rScale(rScale.domain()[1]) + 10) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("y", (d, i) => (rScale(rScale.domain()[1]) + 10) * Math.sin(angleSlice * i - Math.PI / 2))
             .attr("text-anchor", "middle")
+            .style("font-size", "10px")
             .text(d => d);
 
-        // Draw radar areas
-        svg.append("path")
-            .datum(exampleData)
-            .attr("d", radarLine)
-            .attr("fill", "rgba(20, 184, 166, 0.2)") // Tailwind teal-500 with opacity
-            .attr("stroke", "#14b8a6")
-            .attr("stroke-width", 2);
-        
-        svg.append("path")
-            .datum(exampleData2)
-            .attr("d", radarLine)
-            .attr("fill", "rgba(59, 130, 246, 0.2)") // Tailwind blue-500 with opacity
-            .attr("stroke", "#3b82f6")
-            .attr("stroke-width", 2);
+        const color = d3.scaleOrdinal()
+            .range(["rgba(20, 184, 166, 0.2)", "rgba(59, 130, 246, 0.2)", "rgba(249, 115, 22, 0.2)", "rgba(168, 85, 247, 0.2)"]);
+        const strokeColor = d3.scaleOrdinal()
+            .range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]);
 
+        // Draw radar areas for each profile
+        exampleData.forEach((d, i) => {
+            const profileData = allAxis.map(axisName => ({ axis: axisName, value: d[axisName] }));
+            svg.append("path")
+                .datum(profileData)
+                .attr("d", radarLine)
+                .attr("fill", color(d.label || i)) // Use label or index for color
+                .attr("stroke", strokeColor(d.label || i))
+                .attr("stroke-width", 2);
+        });
+
+        // Chart Title
         svg.append("text")
             .attr("x", 0)
             .attr("y", -radius - 20)
@@ -333,27 +487,36 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Player Profiles Comparison");
+
+        // Legend for profiles - positioned relative to the centered SVG group
+        const legendItems = exampleData.map(d => d.label);
+        const legendColorScale = d3.scaleOrdinal()
+            .domain(legendItems)
+            .range(strokeColor.range()); // Use stroke colors for legend
+
+        // Calculate offsets to place legend at top-right of the overall SVG container
+        // Since 'svg' is already translated to center (width/2, height/2),
+        // we need to offset back to top-left corner of the original container, then move to desired spot.
+        // xOffset: (width/2) to get to right edge of original container - legend width
+        // yOffset: (-height/2) to get to top edge of original container + small padding
+        addLegend(svg, legendItems, legendColorScale, width, 0, width / 2 - 100, -height / 2 + 10); // Adjust offsets as needed
     }
 
-    function renderPieChart(containerId) {
-        const exampleData = [
-            { label: 'Marketing', value: 300 },
-            { label: 'Sales', value: 500 },
-            { label: 'Development', value: 1000 },
-            { label: 'Support', value: 200 }
-        ];
+    function renderPieChart(containerId, chartData) {
+        // Data structure: [{ label: 'Marketing', value: 300, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
         const width = container.node().clientWidth;
         const height = container.node().clientHeight;
-        const radius = Math.min(width, height) / 2 - 20;
+        const radius = Math.min(width, height) / 2 - 50; // Space for title and legend
 
         const svg = container.append("svg")
             .attr("width", width)
             .attr("height", height)
             .append("g")
-            .attr("transform", `translate(${width / 2},${height / 2})`);
+            .attr("transform", `translate(${width / 2},${height / 2})`); // Centered group
 
         const pie = d3.pie()
             .value(d => d.value)
@@ -368,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .outerRadius(radius * 0.9);
 
         const color = d3.scaleOrdinal()
-            .range(['#3b82f6', '#14b8a6', '#f97316', '#a855f7']); // Tailwind colors
+            .range(['#3b82f6', '#14b8a6', '#f97316', '#a855f7', '#ef4444']); // Tailwind colors
 
         const arcs = svg.selectAll(".arc")
             .data(pie(exampleData))
@@ -385,26 +548,32 @@ document.addEventListener('DOMContentLoaded', function () {
             .text(d => `${d.data.label} (${(d.data.value / d3.sum(exampleData, v => v.value) * 100).toFixed(1)}%)`)
             .style("font-size", "10px");
 
+        // Chart Title
         svg.append("text")
             .attr("x", 0)
-            .attr("y", -radius - 10)
+            .attr("y", -radius - 20)
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Department Budget Distribution");
+
+        // Legend - positioned relative to the centered SVG group
+        const legendItems = exampleData.map(d => d.label);
+        const legendColorScale = d3.scaleOrdinal()
+            .domain(legendItems)
+            .range(color.range());
+
+        addLegend(svg, legendItems, legendColorScale, width, 0, radius + 10, -radius + 10); // Adjust offsets as needed
     }
 
-    function renderStackedBarChart(containerId) {
-        const exampleData = [
-            { category: 'Q1', 'Product A': 30, 'Product B': 20, 'Product C': 15 },
-            { category: 'Q2', 'Product A': 40, 'Product B': 25, 'Product C': 10 },
-            { category: 'Q3', 'Product A': 20, 'Product B': 35, 'Product C': 25 }
-        ];
-        const keys = ['Product A', 'Product B', 'Product C'];
+    function renderStackedBarChart(containerId, chartData) {
+        // Data structure: [{ label: 'Q1', series: { 'Product A': 30, 'Product B': 20, 'Product C': 15 }, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const keys = Object.keys(exampleData[0].series); // Get series keys from 'series' object
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -414,27 +583,55 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Band scale for categories (Q1, Q2, Q3)
         const x = d3.scaleBand()
-            .domain(exampleData.map(d => d.category))
+            .domain(exampleData.map(d => d.label))
             .rangeRound([0, width])
             .paddingInner(0.1);
 
+        // Y-axis: Linear scale for stacked values
         const y = d3.scaleLinear()
-            .domain([0, d3.max(exampleData, d => d3.sum(keys, key => d[key])) * 1.1])
+            .domain([0, d3.max(exampleData, d => d3.sum(keys, key => d.series[key])) * 1.1]) // Max of total stacked value
             .rangeRound([height, 0]);
 
+        // Color scale for series
         const color = d3.scaleOrdinal()
-            .range(["#14b8a6", "#3b82f6", "#f97316"]); // Tailwind teal, blue, orange
+            .range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]); // Tailwind teal, blue, orange, purple
 
-        const stack = d3.stack().keys(keys);
+        // Stack generator
+        const stack = d3.stack()
+            .keys(keys)
+            .value((d, key) => d.series[key]); // Access values from 'series' object
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Quarter");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Sales Value");
+
+        // Create stacked bars
         svg.selectAll(".series")
             .data(stack(exampleData))
             .enter().append("g")
@@ -442,11 +639,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .selectAll("rect")
             .data(d => d)
             .enter().append("rect")
-            .attr("x", d => x(d.data.category))
+            .attr("x", d => x(d.data.label))
             .attr("y", d => y(d[1]))
             .attr("height", d => y(d[0]) - y(d[1]))
             .attr("width", x.bandwidth());
         
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -454,22 +652,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Sales Composition by Product per Quarter");
+
+        // Legend
+        addLegend(svg, keys, color, width, margin.top);
     }
 
-    function renderStackedAreaChart(containerId) {
-        const exampleData = [
-            { date: 'Jan', 'Category A': 10, 'Category B': 20 },
-            { date: 'Feb', 'Category A': 15, 'Category B': 18 },
-            { date: 'Mar', 'Category A': 12, 'Category B': 25 },
-            { date: 'Apr', 'Category A': 18, 'Category B': 22 },
-            { date: 'May', 'Category A': 20, 'Category B': 28 },
-            { date: 'Jun', 'Category A': 25, 'Category B': 30 }
-        ];
-        const keys = ['Category A', 'Category B'];
+    function renderStackedAreaChart(containerId, chartData) {
+        // Data structure: [{ label: 'Jan', series: { 'Category A': 10, 'Category B': 20 }, ... }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const keys = Object.keys(exampleData[0].series); // Get series keys from 'series' object
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -479,32 +674,63 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Point scale for time labels
         const x = d3.scalePoint()
-            .domain(exampleData.map(d => d.date))
+            .domain(exampleData.map(d => d.label))
             .range([0, width])
             .padding(0.5);
 
+        // Y-axis: Linear scale for stacked values
         const y = d3.scaleLinear()
-            .domain([0, d3.max(exampleData, d => d3.sum(keys, key => d[key])) * 1.1])
+            .domain([0, d3.max(exampleData, d => d3.sum(keys, key => d.series[key])) * 1.1])
             .range([height, 0]);
 
+        // Color scale for areas (with opacity)
         const color = d3.scaleOrdinal()
-            .range(["rgba(20, 184, 166, 0.5)", "rgba(59, 130, 246, 0.5)"]); // Tailwind teal, blue with opacity
+            .range(["rgba(20, 184, 166, 0.5)", "rgba(59, 130, 246, 0.5)", "rgba(249, 115, 22, 0.5)", "rgba(168, 85, 247, 0.5)"]);
 
-        const stack = d3.stack().keys(keys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
+        // Stack generator
+        const stack = d3.stack()
+            .keys(keys)
+            .order(d3.stackOrderNone)
+            .offset(d3.stackOffsetNone)
+            .value((d, key) => d.series[key]); // Access values from 'series' object
 
+        // Area generator
         const area = d3.area()
-            .x(d => x(d.data.date))
+            .x(d => x(d.data.label))
             .y0(d => y(d[0]))
             .y1(d => y(d[1]));
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Month");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Create stacked areas
         svg.selectAll(".layer")
             .data(stack(exampleData))
             .enter().append("path")
@@ -514,6 +740,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", d => d3.color(color(d.key)).darker(0.5)) // Darker stroke for definition
             .attr("stroke-width", 1);
         
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -521,14 +748,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Monthly Sales Composition");
+
+        // Legend
+        addLegend(svg, keys, d3.scaleOrdinal().range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]).domain(keys), width, margin.top);
     }
 
-    function renderHistogram(containerId) {
-        const exampleData = [12, 19, 33, 25, 8, 15, 22, 28, 35, 40, 42, 48, 50, 55, 58]; // Raw data for bins
+    function renderHistogram(containerId, chartData) {
+        // Data structure: [{ group: 'All Data', values: [12, 19, 33, ...] }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const rawValues = exampleData[0].values; // Assuming single group or first group's values
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -538,28 +770,53 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Linear scale for data values
         const x = d3.scaleLinear()
-            .domain([d3.min(exampleData) - 5, d3.max(exampleData) + 5]) // Extend domain slightly
+            .domain([d3.min(rawValues) - 5, d3.max(rawValues) + 5]) // Extend domain slightly
             .range([0, width]);
 
+        // Histogram generator
         const histogram = d3.histogram()
             .value(d => d)
             .domain(x.domain())
-            .thresholds(x.ticks(5)); // 5 bins
+            .thresholds(x.ticks(10)); // 10 bins for better granularity
 
-        const bins = histogram(exampleData);
+        const bins = histogram(rawValues);
 
+        // Y-axis: Linear scale for frequency
         const y = d3.scaleLinear()
             .range([height, 0])
             .domain([0, d3.max(bins, d => d.length) * 1.1]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Frequency");
+
+        // Bars (bins)
         svg.selectAll("rect")
             .data(bins)
             .enter().append("rect")
@@ -570,6 +827,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("fill", "#3b82f6aa") // Tailwind blue-500 with opacity
             .attr("stroke", "#2563eb"); // Tailwind blue-600
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -577,14 +835,18 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Customer Age Distribution");
+
+        // No legend needed for single-color histogram
     }
 
-    function renderDensityPlot(containerId) {
-        const exampleData = Array.from({length: 100}, (_, i) => Math.random() * 60 + 10); // Random data for density
+    function renderDensityPlot(containerId, chartData) {
+        // Data structure: [{ group: 'All Data', values: [...] }]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const rawValues = exampleData[0].values; // Assuming single group or first group's values
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -594,25 +856,49 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Linear scale for data values
         const x = d3.scaleLinear()
-            .domain([d3.min(exampleData) * 0.9, d3.max(exampleData) * 1.1])
+            .domain([d3.min(rawValues) * 0.9, d3.max(rawValues) * 1.1])
             .range([0, width]);
 
         // Compute kernel density estimate
-        const kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(100));
-        const density = kde(exampleData);
+        const kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(100)); // Bandwidth 7, 100 points
+        const density = kde(rawValues);
 
+        // Y-axis: Linear scale for density
         const y = d3.scaleLinear()
             .range([height, 0])
             .domain([0, d3.max(density, d => d[1]) * 1.1]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Density");
+
+        // Density curve
         svg.append("path")
             .datum(density)
             .attr("fill", "rgba(20, 184, 166, 0.3)")
@@ -623,6 +909,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .x(d => x(d[0]))
                 .y(d => y(d[1])));
         
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -643,16 +930,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function renderBoxPlot(containerId) {
-        const exampleData = [
-            { group: 'Group A', values: [10, 20, 30, 40, 50, 60, 70, 80] },
-            { group: 'Group B', values: [15, 25, 35, 45, 55, 65, 75, 85] },
-            { group: 'Group C', values: [20, 30, 40, 50, 60, 70, 80, 90] }
-        ];
+    function renderBoxPlot(containerId, chartData) {
+        // Data structure: [{ group: 'Group A', values: [...] }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -662,22 +946,47 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        const groups = exampleData.map(d => d.group);
+
+        // X-axis: Band scale for groups
         const x = d3.scaleBand()
             .range([0, width])
-            .domain(exampleData.map(d => d.group))
+            .domain(groups)
             .paddingInner(1)
             .paddingOuter(0.5);
 
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
-            .domain([0, 100]) // Assuming values from 0 to 100
+            .domain([0, d3.max(exampleData, d => d3.max(d.values)) * 1.1]) // Dynamic max domain
             .range([height, 0]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Group");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
+
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
 
         // Calculate box plot statistics
         const boxPlotData = exampleData.map(d => {
@@ -685,10 +994,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const q1 = d3.quantile(sorted, 0.25);
             const median = d3.quantile(sorted, 0.5);
             const q3 = d3.quantile(sorted, 0.75);
-            const min = sorted[0];
-            const max = sorted[sorted.length - 1];
-            return { group: d.group, q1, median, q3, min, max };
+            const iqr = q3 - q1;
+            const lowerWhisker = d3.max([d3.min(sorted), q1 - 1.5 * iqr]);
+            const upperWhisker = d3.min([d3.max(sorted), q3 + 1.5 * iqr]);
+            return { group: d.group, q1, median, q3, min: lowerWhisker, max: upperWhisker, values: sorted };
         });
+
+        const color = d3.scaleOrdinal()
+            .domain(groups)
+            .range(["#a855f755", "#3b82f655", "#14b8a655"]); // Colors for each group
 
         // Draw boxes
         svg.selectAll(".box")
@@ -698,8 +1012,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("y", d => y(d.q3))
             .attr("width", x.bandwidth() / 2)
             .attr("height", d => y(d.q1) - y(d.q3))
-            .attr("fill", "#a855f755") // Tailwind purple-500 with opacity
-            .attr("stroke", "#8b5cf6")
+            .attr("fill", d => color(d.group))
+            .attr("stroke", d => d3.color(color(d.group)).darker(0.5))
             .attr("stroke-width", 1);
 
         // Draw median lines
@@ -745,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", "#8b5cf6")
             .attr("stroke-width", 1);
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -752,19 +1067,18 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Comparing Result Distributions");
+
+        // Legend
+        addLegend(svg, groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups), width, margin.top);
     }
 
-
-    function renderScatterPlot(containerId) {
-        const exampleData = [
-            { x: 10, y: 200 }, { x: 12, y: 180 }, { x: 15, y: 150 },
-            { x: 18, y: 140 }, { x: 20, y: 120 }, { x: 22, y: 100 },
-            { x: 25, y: 80 }, { x: 8, y: 210 }, { x: 28, y: 70 }, { x: 17, y: 160 }
-        ];
+    function renderScatterPlot(containerId, chartData) {
+        // Data structure: [{ x: 10, y: 200, id: 'Point_1', metadata: { type: 'A' } }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -774,21 +1088,50 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Linear scale for x values
         const x = d3.scaleLinear()
             .domain([0, d3.max(exampleData, d => d.x) * 1.1])
             .range([0, width]);
 
+        // Y-axis: Linear scale for y values
         const y = d3.scaleLinear()
             .domain([0, d3.max(exampleData, d => d.y) * 1.1])
             .range([height, 0]);
 
+        // Color scale based on 'metadata.type' if available, otherwise default
+        const types = Array.from(new Set(exampleData.map(d => d.metadata?.type || 'Default')));
+        const color = d3.scaleOrdinal()
+            .domain(types)
+            .range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]);
+
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x).ticks(5));
 
+        // X-axis label
+        svg.append("text")
+            .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 10})`)
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Price (USD)");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y).ticks(5));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Units Sold");
+
+        // Dots
         svg.selectAll(".dot")
             .data(exampleData)
             .enter().append("circle")
@@ -796,8 +1139,9 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("cx", d => x(d.x))
             .attr("cy", d => y(d.y))
             .attr("r", 5)
-            .attr("fill", "#14b8a6"); // Tailwind teal-500
+            .attr("fill", d => color(d.metadata?.type || 'Default')); // Use color scale
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -806,30 +1150,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-weight", "bold")
             .text("Product Price vs. Units Sold");
         
-        svg.append("text")
-            .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 5})`)
-            .style("text-anchor", "middle")
-            .text("Price (USD)");
-
-        svg.append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 0 - margin.left + 15)
-            .attr("x", 0 - (height / 2))
-            .attr("text-anchor", "middle")
-            .text("Units Sold");
+        // Legend if multiple types exist
+        if (types.length > 1 || types[0] !== 'Default') {
+            addLegend(svg, types, color, width, margin.top);
+        }
     }
 
-    function renderBubbleChart(containerId) {
-        const exampleData = [
-            { x: 20, y: 30, r: 15, label: 'Country A' },
-            { x: 40, y: 10, r: 25, label: 'Country B' },
-            { x: 32, y: 50, r: 18, label: 'Country C' },
-            { x: 15, y: 25, r: 22, label: 'Country D' }
-        ];
+    function renderBubbleChart(containerId, chartData) {
+        // Data structure: [{ x: 20, y: 30, size: 15, id: 'Point_1', metadata: { type: 'A' } }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -839,36 +1172,67 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Linear scale for x values
         const x = d3.scaleLinear()
             .domain([0, d3.max(exampleData, d => d.x) * 1.1])
             .range([0, width]);
 
+        // Y-axis: Linear scale for y values
         const y = d3.scaleLinear()
             .domain([0, d3.max(exampleData, d => d.y) * 1.1])
             .range([height, 0]);
 
+        // Radius scale for bubble size
         const rScale = d3.scaleSqrt()
-            .domain([0, d3.max(exampleData, d => d.r) * 1.5]) // Scale radius based on max r
+            .domain([0, d3.max(exampleData, d => d.size) * 1.5]) // Scale radius based on 'size' property
             .range([0, 20]); // Max visual radius
 
+        // Color scale based on 'metadata.type' if available, otherwise default
+        const types = Array.from(new Set(exampleData.map(d => d.metadata?.type || 'Default')));
+        const color = d3.scaleOrdinal()
+            .domain(types)
+            .range(["#f9731699", "#3b82f699", "#14b8a699", "#a855f799"]); // Tailwind colors with opacity
+
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x).ticks(5));
 
+        // X-axis label
+        svg.append("text")
+            .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 10})`)
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("X-Axis Value (e.g., GDP)");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y).ticks(5));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Y-Axis Value (e.g., Life Expectancy)");
+
+        // Bubbles
         svg.selectAll(".bubble")
             .data(exampleData)
             .enter().append("circle")
             .attr("class", "bubble")
             .attr("cx", d => x(d.x))
             .attr("cy", d => y(d.y))
-            .attr("r", d => rScale(d.r))
-            .attr("fill", "#f9731699") // Tailwind orange-500 with opacity
-            .attr("stroke", "#ea580c")
+            .attr("r", d => rScale(d.size))
+            .attr("fill", d => color(d.metadata?.type || 'Default'))
+            .attr("stroke", d => d3.color(color(d.metadata?.type || 'Default')).darker(0.5))
             .attr("stroke-width", 1);
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -877,27 +1241,19 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-weight", "bold")
             .text("GDP (X), Life Expectancy (Y), Population (Bubble Size)");
         
-        svg.append("text")
-            .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 5})`)
-            .style("text-anchor", "middle")
-            .text("GDP");
-
-        svg.append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 0 - margin.left + 15)
-            .attr("x", 0 - (height / 2))
-            .attr("text-anchor", "middle")
-            .text("Life Expectancy");
+        // Legend if multiple types exist
+        if (types.length > 1 || types[0] !== 'Default') {
+            addLegend(svg, types, d3.scaleOrdinal().range(["#f97316", "#3b82f6", "#14b8a6", "#a855f7"]).domain(types), width, margin.top);
+        }
     }
 
-    // New D3.js rendering functions for previously missing charts
-
-    function renderBulletChart(containerId) {
-        const exampleData = { value: 75, target: 80, ranges: [60, 70, 90] };
+    function renderBulletChart(containerId, chartData) {
+        // Data structure: { value: 75, target: 80, ranges: [60, 70, 90], label: 'KPI Performance' }
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 20, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -907,11 +1263,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // X-axis: Linear scale for values (performance, target, ranges)
         const x = d3.scaleLinear()
-            .domain([0, 100]) // Assuming a max of 100 for performance
+            .domain([0, d3.max(exampleData.ranges) * 1.1]) // Assuming ranges define max domain
             .range([0, width]);
 
-        // Background ranges
+        // Background ranges (e.g., Poor, Satisfactory, Good)
         svg.selectAll(".range")
             .data(exampleData.ranges)
             .enter().append("rect")
@@ -921,6 +1278,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("y", height / 4)
             .attr("height", height / 2)
             .attr("fill", (d, i) => {
+                // Assuming ranges are ordered: poor, satisfactory, good
                 if (i === 0) return "#fbd7d4"; // Light red for poor
                 if (i === 1) return "#fef0c7"; // Light yellow for satisfactory
                 return "#d4edda"; // Light green for good
@@ -945,31 +1303,51 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", "#dc2626") // Tailwind red-600
             .attr("stroke-width", 2);
 
-        // Axis
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x).ticks(5));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
-            .text("Performance vs. Target");
+            .text(exampleData.label || "Performance vs. Target"); // Use label from data
+
+        // Legend for ranges and target
+        const legendItems = [
+            { label: 'Good', color: '#d4edda' },
+            { label: 'Satisfactory', color: '#fef0c7' },
+            { label: 'Poor', color: '#fbd7d4' },
+            { label: 'Actual Value', color: '#14b8a6' },
+            { label: 'Target', color: '#dc2626' }
+        ];
+        const legendColorScale = d3.scaleOrdinal()
+            .domain(legendItems.map(d => d.label))
+            .range(legendItems.map(d => d.color));
+
+        addLegend(svg, legendItems.map(d => d.label), legendColorScale, width, margin.top);
     }
 
-    function renderSlopegraph(containerId) {
-        const exampleData = [
-            { category: 'A', before: 10, after: 15 },
-            { category: 'B', before: 20, after: 18 },
-            { category: 'C', before: 5, after: 25 },
-            { category: 'D', before: 12, after: 12 }
-        ];
+    function renderSlopegraph(containerId, chartData) {
+        // Data structure: [{ category: 'Dept A', before: 10, after: 15, change: 5 }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 20, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 80 }; // Increased left/right for labels
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -979,6 +1357,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
             .domain([0, d3.max(exampleData, d => Math.max(d.before, d.after)) * 1.1])
             .range([height, 0]);
@@ -992,13 +1371,16 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("x", 0 - (height / 2))
             .attr("dy", "1em")
             .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
             .text("Value");
         
         svg.append("text")
             .attr("x", 0)
-            .attr("y", height + 30)
+            .attr("y", height + margin.bottom - 10)
             .attr("text-anchor", "start")
             .style("font-weight", "bold")
+            .style("font-size", "12px")
             .text("Before");
 
         // Draw 'After' axis
@@ -1007,32 +1389,34 @@ document.addEventListener('DOMContentLoaded', function () {
             .call(d3.axisRight(y));
         svg.append("text")
             .attr("x", width)
-            .attr("y", height + 30)
+            .attr("y", height + margin.bottom - 10)
             .attr("text-anchor", "end")
             .style("font-weight", "bold")
+            .style("font-size", "12px")
             .text("After");
 
         // Draw lines and circles
         exampleData.forEach(d => {
+            const lineColor = d.before < d.after ? "#14b8a6" : (d.before > d.after ? "#dc2626" : "#4b5563"); // Green for increase, Red for decrease, Gray for no change
             svg.append("line")
                 .attr("x1", 0)
                 .attr("y1", y(d.before))
                 .attr("x2", width)
                 .attr("y2", y(d.after))
-                .attr("stroke", d.before < d.after ? "#14b8a6" : (d.before > d.after ? "#dc2626" : "#4b5563")) // Green for increase, Red for decrease, Gray for no change
+                .attr("stroke", lineColor)
                 .attr("stroke-width", 2);
 
             svg.append("circle")
                 .attr("cx", 0)
                 .attr("cy", y(d.before))
                 .attr("r", 4)
-                .attr("fill", "#3b82f6");
+                .attr("fill", lineColor);
 
             svg.append("circle")
                 .attr("cx", width)
                 .attr("cy", y(d.after))
                 .attr("r", 4)
-                .attr("fill", "#3b82f6");
+                .attr("fill", lineColor);
 
             svg.append("text")
                 .attr("x", -5)
@@ -1051,6 +1435,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .text(`${d.category}: ${d.after}`);
         });
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -1058,30 +1443,27 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Change Between Two Points");
+
+        // Legend for change types
+        const legendItems = [
+            { label: 'Increase', color: '#14b8a6' },
+            { label: 'Decrease', color: '#dc2626' },
+            { label: 'No Change', color: '#4b5563' }
+        ];
+        const legendColorScale = d3.scaleOrdinal()
+            .domain(legendItems.map(d => d.label))
+            .range(legendItems.map(d => d.color));
+
+        addLegend(svg, legendItems.map(d => d.label), legendColorScale, width, margin.top);
     }
 
-    function renderTreemap(containerId) {
-        const exampleData = {
-            name: "Root",
-            children: [
-                { name: "Category A", value: 100, children: [
-                    { name: "Sub A1", value: 60 },
-                    { name: "Sub A2", value: 40 }
-                ]},
-                { name: "Category B", value: 200, children: [
-                    { name: "Sub B1", value: 70 },
-                    { name: "Sub B2", value: 130, children: [
-                        { name: "Sub B2-1", value: 50 },
-                        { name: "Sub B2-2", value: 80 }
-                    ]}
-                ]},
-                { name: "Category C", value: 50 }
-            ]
-        };
+    function renderTreemap(containerId, chartData) {
+        // Data structure: { name: "Root", children: [{ name: "Category A", value: 100, children: [...] }, ...] }
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+        const margin = { top: 40, right: 10, bottom: 10, left: 10 }; // Increased top margin for title
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -1122,9 +1504,10 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("fill", "white")
             .call(wrapText, d => d.x1 - d.x0 - 8); // Custom function to wrap text
 
+        // Chart Title
         svg.append("text")
             .attr("x", width / 2)
-            .attr("y", -5)
+            .attr("y", -15)
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
@@ -1155,10 +1538,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
+
+        // Legend for top-level categories
+        const topLevelCategories = root.children.map(d => d.data.name);
+        addLegend(svg, topLevelCategories, color, width, margin.top);
     }
 
-    function renderWaffleChart(containerId) {
-        const exampleData = { percentage: 75 }; // Single percentage for simplicity
+    function renderWaffleChart(containerId, chartData) {
+        // Data structure: { label: 'Progress', value: 75 }
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        const percentage = exampleData.value; // Assuming value holds the percentage
 
         const container = d3.select(`#${containerId}`);
         container.html('');
@@ -1172,7 +1561,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const data = d3.range(totalCells).map(i => ({
             id: i,
-            filled: i < (exampleData.percentage / 100) * totalCells
+            filled: i < (percentage / 100) * totalCells
         }));
 
         const svg = container.append("svg")
@@ -1190,29 +1579,25 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("rx", 2) // Rounded corners
             .attr("ry", 2);
 
+        // Chart Title
         svg.append("text")
             .attr("x", width / 2)
             .attr("y", 20)
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
-            .text(`Progress: ${exampleData.percentage}%`);
+            .text(`Progress: ${percentage}%`);
+
+        // No legend needed for single percentage waffle chart
     }
 
-    function renderViolinPlot(containerId) {
-        // Simplified Violin Plot: Representing density curves for multiple groups.
-        // A full Violin Plot requires complex statistical calculations (KDE) and drawing,
-        // which is beyond a simple D3 example without external libraries.
-        // This will show smoothed density distributions.
-        const exampleData = [
-            { group: 'Group A', values: [10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58, 60, 62, 65, 70, 75, 80] },
-            { group: 'Group B', values: [15, 18, 20, 25, 28, 30, 33, 38, 40, 45, 48, 50, 52, 55, 60, 62, 65, 70, 75, 80, 85] },
-            { group: 'Group C', values: [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 92, 95, 98, 100] }
-        ];
+    function renderViolinPlot(containerId, chartData) {
+        // Data structure: [{ group: 'Group A', values: [...] }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -1222,23 +1607,50 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
+        const groups = exampleData.map(d => d.group);
+
+        // X-axis: Band scale for groups
         const x = d3.scaleBand()
             .range([0, width])
-            .domain(exampleData.map(d => d.group))
+            .domain(groups)
             .padding(0.1);
 
+        const allValues = exampleData.flatMap(d => d.values);
+        // Y-axis: Linear scale for values
         const y = d3.scaleLinear()
-            .domain([0, 100]) // Assuming values from 0 to 100
+            .domain([d3.min(allValues) * 0.9, d3.max(allValues) * 1.1]) // Dynamic domain
             .range([height, 0]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Group");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Value");
+
         const color = d3.scaleOrdinal()
+            .domain(groups)
             .range(["#a855f7aa", "#3b82f6aa", "#14b8a6aa"]); // Purple, Blue, Teal with opacity
 
         // Helper functions for KDE (Kernel Density Estimation)
@@ -1252,7 +1664,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return u => Math.abs(u /= k) <= 1 ? 0.75 * (1 - u * u) / k : 0;
         }
 
-        exampleData.forEach((d, i) => {
+        exampleData.forEach((d) => {
             const kde = kernelDensityEstimator(kernelEpanechnikov(7), y.ticks(20)); // Estimate density for Y values
             const density = kde(d.values);
 
@@ -1276,6 +1688,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .attr("d", area);
         });
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -1283,18 +1696,18 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Comparing Distribution Shapes");
+
+        // Legend
+        addLegend(svg, groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups), width, margin.top);
     }
 
-    function renderHeatmap(containerId) {
-        const exampleData = [
-            { x: 'A', y: 'P1', value: 10 }, { x: 'A', y: 'P2', value: 20 }, { x: 'A', y: 'P3', value: 15 },
-            { x: 'B', y: 'P1', value: 25 }, { x: 'B', y: 'P2', value: 5 }, { x: 'B', y: 'P3', value: 30 },
-            { x: 'C', y: 'P1', value: 18 }, { x: 'C', y: 'P2', value: 12 }, { x: 'C', y: 'P3', value: 22 }
-        ];
+    function renderHeatmap(containerId, chartData) {
+        // Data structure: [{ x: 'A', y: 'P1', value: 10, type: 'High' }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 30, right: 20, bottom: 40, left: 60 };
+        const margin = { top: 40, right: 80, bottom: 60, left: 60 };
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -1307,26 +1720,51 @@ document.addEventListener('DOMContentLoaded', function () {
         const xLabels = Array.from(new Set(exampleData.map(d => d.x)));
         const yLabels = Array.from(new Set(exampleData.map(d => d.y)));
 
+        // X-axis: Band scale for x categories
         const x = d3.scaleBand()
             .range([0, width])
             .domain(xLabels)
             .padding(0.05);
 
+        // Y-axis: Band scale for y categories
         const y = d3.scaleBand()
             .range([height, 0])
             .domain(yLabels)
             .padding(0.05);
 
+        // Color scale for values
         const colorScale = d3.scaleSequential(d3.interpolateViridis)
             .domain([0, d3.max(exampleData, d => d.value)]);
 
+        // Append X axis
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
+        // X-axis label
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("X Category");
+
+        // Append Y axis
         svg.append("g")
             .call(d3.axisLeft(y));
 
+        // Y-axis label
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("font-weight", "bold")
+            .text("Y Category");
+
+        // Heatmap cells
         svg.selectAll(".cell")
             .data(exampleData)
             .enter().append("rect")
@@ -1338,6 +1776,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", "white")
             .attr("stroke-width", 1);
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
@@ -1345,20 +1784,58 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Categorical Heatmap");
+
+        // Simple color bar legend for continuous scale (manual for now)
+        const legendSvg = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${width + 20}, ${height / 2 - 50})`); // Position right of chart
+
+        const legendHeight = 100;
+        const legendWidth = 15;
+
+        const legendYScale = d3.scaleLinear()
+            .domain(colorScale.domain())
+            .range([legendHeight, 0]);
+
+        legendSvg.append("g")
+            .attr("class", "axis")
+            .call(d3.axisRight(legendYScale).ticks(5));
+
+        const defs = svg.append("defs");
+        const linearGradient = defs.append("linearGradient")
+            .attr("id", "linear-gradient")
+            .attr("x1", "0%")
+            .attr("y1", "100%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
+
+        linearGradient.selectAll("stop")
+            .data(colorScale.ticks(10).map((t, i, a) => ({ offset: `${100*i/a.length}%`, color: colorScale(t) })))
+            .enter().append("stop")
+            .attr("offset", d => d.offset)
+            .attr("stop-color", d => d.color);
+
+        legendSvg.append("rect")
+            .attr("width", legendWidth)
+            .attr("height", legendHeight)
+            .style("fill", "url(#linear-gradient)");
+
+        legendSvg.append("text")
+            .attr("x", legendWidth / 2)
+            .attr("y", -10)
+            .attr("text-anchor", "middle")
+            .text("Value");
     }
 
-    function renderParallelCoordinatesPlot(containerId) {
-        const exampleData = [
-            { id: 1, var1: 10, var2: 50, var3: 20, var4: 80 },
-            { id: 2, var1: 20, var2: 40, var3: 25, var4: 70 },
-            { id: 3, var1: 15, var2: 55, var3: 18, var4: 90 },
-            { id: 4, var1: 25, var2: 45, var3: 30, var4: 60 }
-        ];
-        const dimensions = ['var1', 'var2', 'var3', 'var4'];
+    function renderParallelCoordinatesPlot(containerId, chartData) {
+        // Data structure: [{ var1: 10, var2: 50, ..., item: 'Item 1' }, ...]
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
+        // All keys except 'item' (if present) are dimensions
+        const dimensions = Object.keys(exampleData[0]).filter(key => key !== 'item' && key !== 'group'); // Exclude 'group' too
 
         const container = d3.select(`#${containerId}`);
         container.html('');
-        const margin = { top: 40, right: 20, bottom: 20, left: 20 };
+        const margin = { top: 60, right: 80, bottom: 60, left: 80 }; // Increased margins
         const width = container.node().clientWidth - margin.left - margin.right;
         const height = container.node().clientHeight - margin.top - margin.bottom;
 
@@ -1382,13 +1859,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const line = d3.line();
 
+        // Color scale for lines based on 'item' or 'group' if available
+        let colorKey = 'item';
+        if (!exampleData[0].hasOwnProperty(colorKey) && exampleData[0].hasOwnProperty('group')) {
+            colorKey = 'group';
+        }
+        const categories = Array.from(new Set(exampleData.map(d => d[colorKey]).filter(Boolean)));
+        const color = d3.scaleOrdinal()
+            .domain(categories)
+            .range(d3.schemeCategory10); // D3's built-in category colors
+
         // Draw lines for each data point
         svg.selectAll("path")
             .data(exampleData)
             .enter().append("path")
             .attr("d", d => line(dimensions.map(p => [x(p), yScales[p](d[p])])))
             .style("fill", "none")
-            .style("stroke", "#3b82f6aa") // Tailwind blue-500 with opacity
+            .style("stroke", d => color(d[colorKey] || 'Default')) // Color by item/group if available
             .style("stroke-width", 1.5)
             .style("opacity", 0.7);
 
@@ -1404,9 +1891,11 @@ document.addEventListener('DOMContentLoaded', function () {
             .append("text")
             .style("text-anchor", "middle")
             .attr("y", -15)
+            .style("font-size", "10px")
             .text(d => d)
             .style("fill", "#333");
 
+        // Chart Title
         svg.append("text")
             .attr("x", (width / 2))
             .attr("y", -margin.top + 15)
@@ -1414,25 +1903,16 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "16px")
             .style("font-weight", "bold")
             .text("Multi-dimensional Data Comparison");
+
+        // Legend if categories exist
+        if (categories.length > 0) {
+            addLegend(svg, categories, color, width, margin.top);
+        }
     }
 
-    function renderNodeLinkDiagram(containerId) {
-        const exampleData = {
-            nodes: [
-                { id: 'A', name: 'Node A' },
-                { id: 'B', name: 'Node B' },
-                { id: 'C', name: 'Node C' },
-                { id: 'D', name: 'Node D' },
-                { id: 'E', name: 'Node E' }
-            ],
-            links: [
-                { source: 'A', target: 'B' },
-                { source: 'A', target: 'C' },
-                { source: 'B', target: 'D' },
-                { source: 'C', target: 'E' },
-                { source: 'D', target: 'E' }
-            ]
-        };
+    function renderNodeLinkDiagram(containerId, chartData) {
+        // Data structure: { nodes: [{ id: 'A', name: 'Node A', type: 'Source' }], links: [{ source: 'A', target: 'B', value: 10 }] }
+        const exampleData = parseSampleDataStructure(chartData.sampleDataStructure);
 
         const container = d3.select(`#${containerId}`);
         container.html('');
@@ -1443,58 +1923,100 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("width", width)
             .attr("height", height);
 
-        // For a static layout, manually assign positions or use a simple grid/circle layout
-        // Here, we'll use a simple circular layout for demonstration
-        const numNodes = exampleData.nodes.length;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const radius = Math.min(width, height) / 3;
+        // Use D3 force simulation for a dynamic layout
+        const simulation = d3.forceSimulation(exampleData.nodes)
+            .force("link", d3.forceLink(exampleData.links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300)) // Repel nodes
+            .force("center", d3.forceCenter(width / 2, height / 2)); // Center the graph
 
-        exampleData.nodes.forEach((node, i) => {
-            const angle = (i / numNodes) * 2 * Math.PI;
-            node.x = centerX + radius * Math.cos(angle);
-            node.y = centerY + radius * Math.sin(angle);
-        });
+        // Color scale for node types if available
+        const nodeTypes = Array.from(new Set(exampleData.nodes.map(d => d.type).filter(Boolean)));
+        const color = d3.scaleOrdinal()
+            .domain(nodeTypes)
+            .range(d3.schemeCategory10);
 
         // Draw links
-        const link = svg.selectAll(".link")
+        const link = svg.append("g")
+            .attr("stroke", "#999")
+            .attr("stroke-opacity", 0.6)
+            .selectAll("line")
             .data(exampleData.links)
-            .enter().append("line")
-            .attr("class", "link")
-            .attr("x1", d => exampleData.nodes.find(n => n.id === d.source).x)
-            .attr("y1", d => exampleData.nodes.find(n => n.id === d.source).y)
-            .attr("x2", d => exampleData.nodes.find(n => n.id === d.target).x)
-            .attr("y2", d => exampleData.nodes.find(n => n.id === d.target).y)
-            .attr("stroke", "#9ca3af") // Tailwind gray-400
-            .attr("stroke-width", 2);
+            .join("line")
+            .attr("stroke-width", d => Math.sqrt(d.value || 1)); // Use link value for width
 
         // Draw nodes
-        const node = svg.selectAll(".node")
+        const node = svg.append("g")
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+            .selectAll("circle")
             .data(exampleData.nodes)
-            .enter().append("g")
-            .attr("class", "node")
-            .attr("transform", d => `translate(${d.x},${d.y})`);
+            .join("circle")
+            .attr("r", 10)
+            .attr("fill", d => color(d.type || 'Default'))
+            .call(d3.drag() // Enable dragging
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
 
-        node.append("circle")
-            .attr("r", 15)
-            .attr("fill", "#3b82f6") // Tailwind blue-500
-            .attr("stroke", "#2563eb")
-            .attr("stroke-width", 1.5);
+        // Node labels
+        const label = svg.append("g")
+            .selectAll("text")
+            .data(exampleData.nodes)
+            .join("text")
+            .text(d => d.name)
+            .attr("font-size", 10)
+            .attr("dx", 12)
+            .attr("dy", "0.35em");
 
-        node.append("text")
-            .attr("dy", "0.35em")
-            .attr("text-anchor", "middle")
-            .style("font-size", "10px")
-            .style("fill", "white")
-            .text(d => d.name);
-        
+        // Update positions on each tick of the simulation
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+        });
+
+        // Drag functions
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Chart Title
         svg.append("text")
             .attr("x", width / 2)
             .attr("y", 20)
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
-            .text("Basic Node-Link Diagram");
+            .text("Network Diagram (Drag Nodes)");
+
+        // Legend for node types
+        if (nodeTypes.length > 0) {
+            // Position legend at top-right of the overall SVG container
+            addLegend(svg, nodeTypes, color, width, 0, width - 100, 10); // Adjust offsets as needed
+        }
     }
 
     const intents = [
@@ -1508,16 +2030,18 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
 
     const dataTypes = [
-        { id: 'categorical_quantitative', name: 'Categorical & Quantitative', validFor: ['comparison', 'distribution', 'composition'] },
-        { id: 'time_series', name: 'Time-Series', validFor: ['evolution', 'comparison'] },
-        { id: 'two_quantitative', name: 'Two Quantitative Variables', validFor: ['relationship', 'distribution'] },
-        { id: 'three_quantitative', name: 'Three Quantitative Variables', validFor: ['relationship'] },
-        { id: 'univariate_quantitative', name: 'Single Quantitative Variable', validFor: ['distribution'] },
-        { id: 'univariate_categorical', name: 'Single Categorical Variable', validFor: ['comparison'] },
-        { id: 'two_categorical', name: 'Two Categorical Variables', validFor: ['relationship'] },
-        { id: 'hierarchical_data', name: 'Hierarchical Data', validFor: ['composition', 'hierarchy'] },
-        { id: 'flow_data', name: 'Flow Data', validFor: ['flow'] },
-        { id: 'network_data', name: 'Network Data', validFor: ['relationship'] },
+        // Added 'category' property to link to unified data structures
+        { id: 'categorical_quantitative', name: 'Categorical & Quantitative', validFor: ['comparison', 'distribution', 'composition'], category: 'single_cat_quant' },
+        { id: 'time_series', name: 'Time-Series', validFor: ['evolution', 'comparison'], category: 'multi_cat_quant' }, // Line/Stacked Area can use multi-series
+        { id: 'two_quantitative', name: 'Two Quantitative Variables', validFor: ['relationship', 'distribution'], category: 'quant_pair_data' },
+        { id: 'three_quantitative', name: 'Three Quantitative Variables', validFor: ['relationship'], category: 'quant_pair_data' },
+        { id: 'univariate_quantitative', name: 'Single Quantitative Variable', validFor: ['distribution', 'comparison'], category: 'distribution_data' }, // Bullet can use this
+        { id: 'univariate_categorical', name: 'Single Categorical Variable', validFor: ['comparison', 'composition'], category: 'single_cat_quant' }, // Waffle can use this
+        { id: 'two_categorical', name: 'Two Categorical Variables', validFor: ['relationship'], category: 'specific_data_structures' }, // Heatmap
+        { id: 'hierarchical_data', name: 'Hierarchical Data', validFor: ['composition', 'hierarchy'], category: 'tree_hierarchy_data' },
+        { id: 'flow_data', name: 'Flow Data', validFor: ['flow'], category: 'network_hierarchy_data' },
+        { id: 'network_data', name: 'Network Data', validFor: ['relationship'], category: 'network_hierarchy_data' },
+        { id: 'multivariate_quantitative', name: 'Multivariate Quantitative', validFor: ['comparison', 'relationship', 'distribution'], category: 'specific_data_structures' } // Radar, Parallel Coordinates
     ];
 
     const charts = [
@@ -1531,12 +2055,25 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, Grouped',
             dataConstraints: 'Requires categorical data on one axis and quantitative data on the other. Value axis must start at zero.',
             typicalUseCases: 'Comparing sales by product, number of students by major, showing frequencies for categories.',
-           // strengths: 'Clear, intuitive comparison of magnitudes across discrete categories. Highly effective when the axis starts from zero.',
-           // weaknesses: 'Becomes cluttered and unreadable with >15 categories. Starting from a non-zero axis dramatically exaggerates differences misleadingly.',
+            strengths: 'Clear, intuitive comparison of magnitudes across discrete categories. Highly effective when the axis starts from zero.',
+            weaknesses: 'Becomes cluttered and unreadable with >15 categories. Starting from a non-zero axis dramatically exaggerates differences misleadingly.',
+            compatibleDataCategory: 'single_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Category (e.g., Product Name)',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete categories to bands along the X-axis. Uses `domain` for categories and `range` for pixel span. `padding` controls spacing between bars.'
+            },
+            yAxisInfo: {
+                label: 'Value (e.g., Sales Quantity)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` defines min/max data values, `range` defines pixel span. Typically starts at zero for accurate comparison.'
+            },
             sampleDataStructure: `const data = [
-    { category: 'Category A', value: 150 },
-    { category: 'Category B', value: 200 },
-    { category: 'Category C', value: 120 }
+    { label: 'Product A', value: 65, details: { region: 'North', status: 'Active' } },
+    { label: 'Product B', value: 59, details: { region: 'South', status: 'Inactive' } },
+    { label: 'Product C', value: 80, details: { region: 'East', status: 'Active' } },
+    { label: 'Product D', value: 81, details: { region: 'West', status: 'Active' } },
+    { label: 'Product E', value: 45, details: { region: 'North', status: 'Inactive' } }
 ];`,
             renderFunction: renderBarChart
         },
@@ -1550,18 +2087,25 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Grouped',
             dataConstraints: 'Requires two categorical variables and one quantitative variable.',
             typicalUseCases: 'Comparing product sales across different regions, student performance in multiple subjects by gender.',
-           // strengths: 'Effective for comparing values both within and across categories.',
-           // weaknesses: 'Can become visually complex with too many series or categories.',
-            sampleDataStructure: `const data = {
-    labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
-    datasets: [{
-        label: 'Series A',
-        data: [30, 40, 20]
-    }, {
-        label: 'Series B',
-        data: [20, 25, 35]
-    }]
-};`,
+            strengths: 'Effective for comparing values both within and across categories.',
+            weaknesses: 'Can become visually complex with too many series or categories.',
+            compatibleDataCategory: 'multi_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Main Category (e.g., Quarter)',
+                scaleType: 'd3.scaleBand (outer), d3.scaleBand (inner)',
+                config: 'Outer band scale for main categories, inner band scale for series within each category. `paddingInner` and `padding` control spacing.'
+            },
+            yAxisInfo: {
+                label: 'Value (e.g., Sales Value)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` is based on the maximum value across all series.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Q1', series: { 'Sales A': 30, 'Sales B': 20, 'Sales C': 15 }, total: 65 },
+    { label: 'Q2', series: { 'Sales A': 40, 'Sales B': 25, 'Sales C': 10 }, total: 75 },
+    { label: 'Q3', series: { 'Sales A': 20, 'Sales B': 35, 'Sales C': 25 }, total: 80 },
+    { label: 'Q4', series: { 'Sales A': 50, 'Sales B': 30, 'Sales C': 20 }, total: 100 }
+];`,
             renderFunction: renderGroupedBarChart
         },
         {
@@ -1574,12 +2118,24 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a single performance value, a target, and qualitative ranges (optional).',
             typicalUseCases: 'Monitoring performance against goals, dashboards, progress reports.',
-          // strengths: 'Space-efficient alternative to dashboard gauges, clearly shows performance against target and qualitative ranges.',
-          // weaknesses: 'Specific to a narrow use case (one measure vs. target). Does not show full data distribution.',
+            strengths: 'Space-efficient alternative to dashboard gauges, clearly shows performance against target and qualitative ranges.',
+            weaknesses: 'Specific to a narrow use case (one measure vs. target). Does not show full data distribution.',
+            compatibleDataCategory: 'specific_data_structures', // New property
+            xAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range. `domain` is typically derived from the maximum range value.'
+            },
+            yAxisInfo: {
+                label: 'N/A',
+                scaleType: 'N/A',
+                config: 'This chart typically does not have a traditional Y-axis for data mapping; height is fixed or proportional.'
+            },
             sampleDataStructure: `const data = {
     value: 75, // Current value
     target: 80, // Target value
-    ranges: [60, 70, 90] // Performance ranges (poor, satisfactory, good)
+    ranges: [60, 70, 90], // Performance ranges (poor, satisfactory, good)
+    label: 'KPI Performance'
 };`,
             renderFunction: renderBulletChart
         },
@@ -1593,18 +2149,27 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Multiple Lines',
             dataConstraints: 'Requires time data on one axis (usually X) and quantitative data on the other. Ideal for sequential data.',
             typicalUseCases: 'Tracking stock prices, population growth, monthly temperatures.',
-          //  strengths: 'Excellent for showing trends and changes over time. Handles many data points well. Does not require a zero baseline.',
-          //  weaknesses: 'Can be highly misleading if used for non-sequential categorical data, as it falsely implies a continuous relationship.',
-            sampleDataStructure: `const data = {
-    labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
-    datasets: [{
-        label: 'Series A',
-        data: [30, 40, 20]
-    }, {
-        label: 'Series B',
-        data: [20, 25, 35]
-    }]
-};`,
+            strengths: 'Excellent for showing trends and changes over time. Handles many data points well. Does not require a zero baseline.',
+            weaknesses: 'Can be highly misleading if used for non-sequential categorical data, as it falsely implies a continuous relationship.',
+            compatibleDataCategory: 'multi_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Time (e.g., Month)',
+                scaleType: 'd3.scalePoint',
+                config: 'Maps discrete time points to positions along the X-axis. `padding` controls spacing.'
+            },
+            yAxisInfo: {
+                label: 'Value (e.g., Profit)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` is based on the maximum value across all series.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Jan', series: { 'Sales A': 30, 'Sales B': 20, 'Sales C': 15 } },
+    { label: 'Feb', series: { 'Sales A': 45, 'Sales B': 25, 'Sales C': 10 } },
+    { label: 'Mar', series: { 'Sales A': 42, 'Sales B': 35, 'Sales C': 25 } },
+    { label: 'Apr', series: { 'Sales A': 55, 'Sales B': 30, 'Sales C': 20 } },
+    { label: 'May', series: { 'Sales A': 60, 'Sales B': 40, 'Sales C': 30 } },
+    { label: 'Jun', series: { 'Sales A': 58, 'Sales B': 38, 'Sales C': 28 } }
+];`,
             renderFunction: renderLineChart
         },
         {
@@ -1617,15 +2182,25 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires categorical and quantitative data. Effective when a zero baseline is not necessary.',
             typicalUseCases: 'Comparing performance across groups, showing change between two time points.',
-          //  strengths: 'Reduces visual clutter compared to bar charts, effective when a zero baseline is not meaningful.',
-          //  weaknesses: 'Can become cluttered with too many categories or very similar values.',
-            sampleDataStructure: `const data = {
-    labels: ['Category A', 'Category B', 'Category C'], // Categories
-    datasets: [{
-        label: 'Values',
-        data: [{x: 'Category A', y: 50}, {x: 'Category B', y: 70}, {x: 'Category C', y: 45}] // Points (category, value)
-    }]
-};`,
+            strengths: 'Reduces visual clutter compared to bar charts, effective when a zero baseline is not meaningful.',
+            weaknesses: 'Can become cluttered with too many categories or very similar values.',
+            compatibleDataCategory: 'single_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Category',
+                scaleType: 'd3.scalePoint',
+                config: 'Maps discrete categories to points along the X-axis. `padding` controls spacing between points.'
+            },
+            yAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` defines min/max data values.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Category A', value: 50, details: { region: 'North' } },
+    { label: 'Category B', value: 70, details: { region: 'South' } },
+    { label: 'Category C', value: 45, details: { region: 'East' } },
+    { label: 'Category D', value: 60, details: { region: 'West' } }
+];`,
             renderFunction: renderDotPlot
         },
         {
@@ -1638,18 +2213,24 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A (Compares profiles)',
             dataConstraints: 'Requires multiple quantitative variables for the same entities.',
             typicalUseCases: 'Evaluating products across a range of features, comparing student performance profiles.',
-         //  strengths: 'Useful for comparing the profiles of different items across a range of features.',
-         //  weaknesses: 'Effectiveness diminishes rapidly as the number of variables increases, as the chart can become a confusing web of overlapping polygons.',
-            sampleDataStructure: `const data = {
-    labels: ['Feature 1', 'Feature 2', 'Feature 3'], // Axis/feature names
-    datasets: [{
-        label: 'Product A',
-        data: [65, 59, 90] // Values for Product A per feature
-    }, {
-        label: 'Product B',
-        data: [28, 48, 40] // Values for Product B per feature
-    }]
-};`,
+            strengths: 'Useful for comparing the profiles of different items across a range of features.',
+            weaknesses: 'Effectiveness diminishes rapidly as the number of variables increases, as the chart can become a confusing web of overlapping polygons.',
+            compatibleDataCategory: 'specific_data_structures', // New property
+            xAxisInfo: {
+                label: 'Axes (e.g., Strength, Speed)',
+                scaleType: 'Angular (implicit)',
+                config: 'Axes radiate from the center, each representing a different quantitative variable. Angle is derived from the number of axes.'
+            },
+            yAxisInfo: {
+                label: 'Value (along axis)',
+                scaleType: 'd3.scaleLinear (radial)',
+                config: 'Maps quantitative values to a radial distance from the center. `domain` is based on the maximum value across all axes and profiles.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Player A', Strength: 65, Speed: 59, Intelligence: 90, Agility: 81, Stamina: 56, Shooting: 70 },
+    { label: 'Player B', Strength: 28, Speed: 48, Intelligence: 40, Agility: 19, Stamina: 96, Shooting: 35 },
+    { label: 'Player C', Strength: 80, Speed: 75, Intelligence: 60, Agility: 70, Stamina: 65, Shooting: 85 }
+];`,
             renderFunction: renderRadarChart
         },
         {
@@ -1661,13 +2242,25 @@ document.addEventListener('DOMContentLoaded', function () {
             dimensionality: 'Bivariate (Category, Quant) across two time points',
             groupingSupport: 'N/A',
             dataConstraints: 'Requires values for the same categories at two distinct time points.',
-            typicalUseCases: 'Tracking changes in rankings, comparing results before and after an intervention.',
-          //  strengths: 'Clearly and efficiently highlights which categories have increased, decreased, or stayed the same, and by how much.',
-          //  weaknesses: 'Becomes cluttered with too many categories or if changes are very small.',
+            typicalUseCases: 'Tracking changes in rankings, comparing results before and after an. intervention.',
+            strengths: 'Clearly and efficiently highlights which categories have increased, decreased, or stayed the same, and by how much.',
+            weaknesses: 'Becomes cluttered with too many categories or if changes are very small.',
+            compatibleDataCategory: 'specific_data_structures', // New property
+            xAxisInfo: {
+                label: 'Time Point (Before/After)',
+                scaleType: 'Implicit (two fixed points)',
+                config: 'Represents two discrete time points (e.g., "Before" and "After") on the X-axis. No D3 scale is explicitly defined for this axis.'
+            },
+            yAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` covers the min/max values across both time points.'
+            },
             sampleDataStructure: `const data = [
-    { category: 'Category A', before: 10, after: 15 },
-    { category: 'Category B', before: 20, after: 18 },
-    { category: 'Category C', before: 5, after: 25 }
+    { category: 'Dept A', before: 10, after: 15, change: 5, status: 'Improved' },
+    { category: 'Dept B', before: 20, after: 18, change: -2, status: 'Declined' },
+    { category: 'Dept C', before: 5, after: 25, change: 20, status: 'Improved' },
+    { category: 'Dept D', before: 12, after: 12, change: 0, status: 'No Change' }
 ];`,
             renderFunction: renderSlopegraph
         },
@@ -1681,14 +2274,25 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires data representing parts of a whole, with very few categories (ideally 5 or fewer).',
             typicalUseCases: 'Budget allocation, market share, simple survey results.',
-          //  strengths: 'Simple, intuitive display of part-to-whole proportions for few categories.',
-          //  weaknesses: 'Humans are poor at judging angles accurately. Becomes totally ineffective with too many slices. Often misused for comparing values between different pies.',
-            sampleDataStructure: `const data = {
-    labels: ['Part 1', 'Part 2', 'Part 3'], // Names of the parts
-    datasets: [{
-        data: [30, 50, 20] // Values for each part (sum should represent the whole)
-    }]
-};`,
+            strengths: 'Simple, intuitive display of part-to-whole proportions for few categories.',
+            weaknesses: 'Humans are poor at judging angles accurately. Becomes totally ineffective with too many slices. Often misused for comparing values between different pies.',
+            compatibleDataCategory: 'single_cat_quant', // New property
+            xAxisInfo: {
+                label: 'N/A',
+                scaleType: 'N/A',
+                config: 'This chart uses angles and areas to represent proportions, not a linear X-axis.'
+            },
+            yAxisInfo: {
+                label: 'N/A',
+                scaleType: 'N/A',
+                config: 'This chart uses angles and areas to represent proportions, not a linear Y-axis.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Marketing', value: 300, department_id: 'MKT001' },
+    { label: 'Sales', value: 500, department_id: 'SAL002' },
+    { label: 'Development', value: 1000, department_id: 'DEV003' },
+    { label: 'Support', value: 200, department_id: 'SUP004' }
+];`,
             renderFunction: renderPieChart
         },
         {
@@ -1701,18 +2305,25 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, 100% Stacked',
             dataConstraints: 'Requires a quantitative variable broken down by two categorical variables (or one category and time).',
             typicalUseCases: 'Sales composition by product per quarter, population distribution by age group and gender.',
-          //  strengths: 'Shows part-to-whole composition within each category while allowing comparison of totals.',
-          //  weaknesses: 'Difficult to compare individual segment sizes across bars unless they are at the base. Can become complex with many segments.',
-            sampleDataStructure: `const data = {
-    labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
-    datasets: [{
-        label: 'Series A',
-        data: [30, 40, 20]
-    }, {
-        label: 'Series B',
-        data: [20, 25, 35]
-    }]
-};`,
+            strengths: 'Shows part-to-whole composition within each category while allowing comparison of totals.',
+            weaknesses: 'Difficult to compare individual segment sizes across bars unless they are at the base. Can become complex with many segments.',
+            compatibleDataCategory: 'multi_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Category (e.g., Quarter)',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete categories to bands along the X-axis. `paddingInner` controls spacing between bars.'
+            },
+            yAxisInfo: {
+                label: 'Value (e.g., Sales Value)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` is based on the maximum total stacked value for each category.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Q1', series: { 'Product A': 30, 'Product B': 20, 'Product C': 15 }, total: 65 },
+    { label: 'Q2', series: { 'Sales A': 40, 'Sales B': 25, 'Sales C': 10 }, total: 75 },
+    { label: 'Q3', series: { 'Sales A': 20, 'Sales B': 35, 'Sales C': 25 }, total: 80 },
+    { label: 'Q4', series: { 'Sales A': 50, 'Sales B': 30, 'Sales C': 20 }, total: 100 }
+];`,
             renderFunction: renderStackedBarChart
         },
         {
@@ -1725,18 +2336,27 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Stacked, 100% Stacked',
             dataConstraints: 'Requires time data on the X-axis, and multiple quantitative variables representing parts of a whole.',
             typicalUseCases: 'Evolution of market share over time, composition of government spending over years.',
-          //  strengths: 'Combines displaying evolution over time with composition, showing how parts of a whole change.',
-          //  weaknesses: 'Can be difficult to read lower lines accurately. Can be misleading if ordering is not logical.',
-            sampleDataStructure: `const data = {
-    labels: ['Category 1', 'Category 2', 'Category 3'], // Main categories or time points
-    datasets: [{
-        label: 'Series A',
-        data: [30, 40, 20]
-    }, {
-        label: 'Series B',
-        data: [20, 25, 35]
-    }]
-};`,
+            strengths: 'Combines displaying evolution over time with composition, showing how parts of a whole change.',
+            weaknesses: 'Can be difficult to read lower lines accurately. Can be misleading if ordering is not logical.',
+            compatibleDataCategory: 'multi_cat_quant', // New property
+            xAxisInfo: {
+                label: 'Time (e.g., Month)',
+                scaleType: 'd3.scalePoint',
+                config: 'Maps discrete time points to positions along the X-axis. `padding` controls spacing.'
+            },
+            yAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` is based on the maximum total stacked value for each time point.'
+            },
+            sampleDataStructure: `const data = [
+    { label: 'Jan', series: { 'Category A': 10, 'Category B': 20, 'Category C': 5 } },
+    { label: 'Feb', series: { 'Category A': 15, 'Category B': 18, 'Category C': 7 } },
+    { label: 'Mar', series: { 'Category A': 12, 'Category B': 25, 'Category C': 8 } },
+    { label: 'Apr', series: { 'Category A': 18, 'Category B': 22, 'Category C': 10 } },
+    { label: 'May', series: { 'Category A': 20, 'Category B': 28, 'Category C': 12 } },
+    { label: 'Jun', series: { 'Category A': 25, 'Category B': 30, 'Category C': 15 } }
+];`,
             renderFunction: renderStackedAreaChart
         },
         {
@@ -1749,16 +2369,34 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Nested',
             dataConstraints: 'Requires data with a clear parent-child hierarchical structure and a quantitative value for each node.',
             typicalUseCases: 'Budget allocation, file sizes on a hard drive, company organizational structure.',
-          //  strengths: 'Space-efficient display of large, hierarchical part-to-whole data. Shows the relative size of each element.',
-          //  weaknesses: 'Difficult to precisely compare areas. Can become unreadable with very deep hierarchies or many small items.',
+            strengths: 'Space-efficient display of large, hierarchical part-to-whole data. Shows the relative size of each element.',
+            weaknesses: 'Difficult to precisely compare areas. Can become unreadable with very deep hierarchies or many small items.',
+            compatibleDataCategory: 'tree_hierarchy_data', // New property
+            xAxisInfo: {
+                label: 'N/A',
+                scaleType: 'Implicit (positional)',
+                config: 'Uses X-position to encode hierarchy and size. No traditional linear X-axis.'
+            },
+            yAxisInfo: {
+                label: 'N/A',
+                scaleType: 'Implicit (positional)',
+                config: 'Uses Y-position to encode hierarchy and size. No traditional linear Y-axis.'
+            },
             sampleDataStructure: `const data = {
     name: "Root",
     children: [
         { name: "Category A", value: 100, children: [
-            { name: "Sub A1", value: 60 },
-            { name: "Sub A2", value: 40 }
+            { name: "Sub A1", value: 60, status: 'Completed' },
+            { name: "Sub A2", value: 40, status: 'Pending' }
         ]},
-        { name: "Category B", value: 200 }
+        { name: "Category B", value: 200, children: [
+            { name: "Sub B1", value: 70, status: 'Active' },
+            { name: "Sub B2", value: 130, children: [
+                { name: "Sub B2-1", value: 50, status: 'Active' },
+                { name: "Sub B2-2", value: 80, status: 'Completed' }
+            ]}
+        ]},
+        { name: "Category C", value: 50, children: [] }
     ]
 };`,
             renderFunction: renderTreemap
@@ -1773,16 +2411,20 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a single percentage or multiple percentages that sum to 100%.',
             typicalUseCases: 'Illustrating progress towards a goal, representing percentages in reports.',
-          //  strengths: 'Highly intuitive and visually engaging for concretely communicating percentages.',
-          //  weaknesses: 'Not suitable for a large number of categories. Does not show precise details.',
-            sampleDataStructure: `const data = {
-    percentage: 75 // A single percentage
-};
-// Or for multiple categories:
-// const data = [
-//     { category: 'Completed', percentage: 75 },
-//     { category: 'Remaining', percentage: 25 }
-// ];`,
+            strengths: 'Highly intuitive and visually engaging for concretely communicating percentages.',
+            weaknesses: 'Not suitable for a large number of categories. Does not show precise details.',
+            compatibleDataCategory: 'single_cat_quant', // New property
+            xAxisInfo: {
+                label: 'N/A',
+                scaleType: 'Implicit (grid position)',
+                config: 'X-axis position is determined by grid layout (column index). No explicit D3 scale.'
+            },
+            yAxisInfo: {
+                label: 'N/A',
+                scaleType: 'Implicit (grid position)',
+                config: 'Y-axis position is determined by grid layout (row index). No explicit D3 scale.'
+            },
+            sampleDataStructure: `const data = { label: 'Project Completion', value: 75, unit: '%' };`, // Single percentage for simplicity
             renderFunction: renderWaffleChart
         },
         {
@@ -1795,10 +2437,21 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a continuous quantitative variable. Relies on "bins" to group data.',
             typicalUseCases: 'Distribution of customer ages, test scores, income distribution.',
-          //  strengths: 'Clearly shows the frequency distribution of a single continuous variable. Crucial in exploratory data analysis.',
-          //  weaknesses: 'Shape is highly dependent on the choice of bin width. Not for categorical data.',
+            strengths: 'Clearly shows the frequency distribution of a single continuous variable. Crucial in exploratory data analysis.',
+            weaknesses: 'Shape is highly dependent on the choice of bin width. Not for categorical data.',
+            compatibleDataCategory: 'distribution_data', // New property
+            xAxisInfo: {
+                label: 'Value (e.g., Age)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps continuous quantitative values to a linear range. Data is grouped into `bins` on this axis.'
+            },
+            yAxisInfo: {
+                label: 'Frequency',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps the count of data points in each bin to a linear range. `domain` is based on the maximum frequency.'
+            },
             sampleDataStructure: `const data = [
-    10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58 // List of raw values
+    { group: 'All Data', values: [12, 19, 33, 25, 8, 15, 22, 28, 35, 40, 42, 48, 50, 55, 58, 62, 65, 70, 75, 80, 85, 90, 95, 100, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150] }
 ];`,
             renderFunction: renderHistogram
         },
@@ -1812,10 +2465,21 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a continuous quantitative variable.',
             typicalUseCases: 'Understanding the shape of data distribution, identifying hidden patterns.',
-          //  strengths: 'Provides a clearer view of the underlying shape of data distribution compared to a histogram, especially with large datasets.',
-          //  weaknesses: 'May obscure fine details of the distribution compared to a raw histogram.',
+            strengths: 'Provides a clearer view of the underlying shape of data distribution compared to a histogram, especially with large datasets.',
+            weaknesses: 'May obscure fine details of the distribution compared to a raw histogram.',
+            compatibleDataCategory: 'distribution_data', // New property
+            xAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps continuous quantitative values to a linear range. Represents the data values for which density is estimated.'
+            },
+            yAxisInfo: {
+                label: 'Density',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps the estimated probability density to a linear range. `domain` is based on the maximum density value.'
+            },
             sampleDataStructure: `const data = [
-    10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58 // List of raw values
+    { group: 'All Data', values: Array.from({length: 200}, (_, i) => Math.random() * 80 + 20) } // More data points
 ];`,
             renderFunction: renderDensityPlot
         },
@@ -1829,18 +2493,24 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Faceted',
             dataConstraints: 'Requires a quantitative variable and a categorical variable for grouping.',
             typicalUseCases: 'Comparing distributions of variables across multiple groups, identifying outliers.',
-          //  strengths: 'Compactly summarizes and compares distributions across multiple groups; highlights outliers effectively.',
-          //  weaknesses: 'Hides the underlying shape of the distribution (e.g., bimodality).',
-            sampleDataStructure: `const data = {
-    labels: ['Group A', 'Group B'], // Group names
-    datasets: [{
-        label: 'Values',
-        data: [
-            [10, 20, 30, 40, 50], // [Min, Q1, Median, Q3, Max] for Group A
-            [15, 25, 35, 45, 55]  // for Group B
-        ]
-    }]
-};`,
+            strengths: 'Compactly summarizes and compares distributions across multiple groups; highlights outliers effectively.',
+            weaknesses: 'Hides the underlying shape of the distribution (e.g., bimodality).',
+            compatibleDataCategory: 'distribution_data', // New property
+            xAxisInfo: {
+                label: 'Group',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete groups to bands along the X-axis. `paddingInner` and `paddingOuter` control spacing.'
+            },
+            yAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` covers the min/max values across all groups.'
+            },
+            sampleDataStructure: `const data = [
+    { group: 'Group A', values: [10, 20, 30, 40, 50, 60, 70, 80, 15, 25, 35, 45, 55, 65, 75, 85, 90, 95, 100, 5, 12, 18, 22, 28] },
+    { group: 'Group B', values: [15, 25, 35, 45, 55, 65, 75, 85, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100, 105, 110, 115, 120, 125, 130] },
+    { group: 'Group C', values: [20, 30, 40, 50, 60, 70, 80, 90, 25, 35, 45, 55, 65, 75, 85, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150] }
+];`,
             renderFunction: renderBoxPlot
         },
         {
@@ -1853,18 +2523,24 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Faceted',
             dataConstraints: 'Requires a quantitative variable and a categorical variable for grouping.',
             typicalUseCases: 'Understanding the full distribution of data across groups, identifying multi-modal distributions.',
-          //  strengths: 'Provides a much richer understanding than a standard box plot, as it reveals the shape of the distribution.',
-          //  weaknesses: 'More complex to interpret than a simple box plot. Can become cluttered with many groups.',
-            sampleDataStructure: `const data = {
-    labels: ['Group A', 'Group B'], // Group names
-    datasets: [{
-        label: 'Values',
-        data: [
-            [10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58], // Raw values for Group A
-            [15, 18, 20, 25, 28, 30, 33, 38, 40, 45, 48, 50, 52, 55, 60]  // Raw values for Group B
-        ]
-    }]
-};`,
+            strengths: 'Provides a much richer understanding than a standard box plot, as it reveals the shape of the distribution.',
+            weaknesses: 'More complex to interpret than a simple box plot. Can become cluttered with many groups.',
+            compatibleDataCategory: 'distribution_data', // New property
+            xAxisInfo: {
+                label: 'Group',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete groups to bands along the X-axis. `padding` controls spacing between violins.'
+            },
+            yAxisInfo: {
+                label: 'Value',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` covers the min/max values across all groups.'
+            },
+            sampleDataStructure: `const data = [
+    { group: 'Group A', values: [10, 12, 15, 20, 22, 25, 30, 32, 35, 40, 42, 45, 50, 55, 58, 60, 62, 65, 70, 75, 80, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100] },
+    { group: 'Group B', values: [15, 18, 20, 25, 28, 30, 33, 38, 40, 45, 48, 50, 52, 55, 60, 62, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130] },
+    { group: 'Group C', values: [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 92, 95, 98, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150] }
+];`,
             renderFunction: renderViolinPlot
         },
         {
@@ -1877,18 +2553,31 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color/Shape Coding',
             dataConstraints: 'Requires two continuous quantitative variables.',
             typicalUseCases: 'Revealing correlations, identifying clusters and outliers, understanding patterns.',
-          //  strengths: 'The gold standard for showing correlation and relationship between two continuous variables. Reveals form, direction, and strength of a relationship.',
-          //  weaknesses: 'Can suffer from overplotting with very large datasets, making individual points indistinguishable.',
-            sampleDataStructure: `const data = {
-    datasets: [{
-        label: 'Points',
-        data: [
-            {x: 10, y: 200},
-            {x: 12, y: 180},
-            {x: 15, y: 150}
-        ] // Array of {x, y} objects
-    }]
-};`,
+            strengths: 'The gold standard for showing correlation and relationship between two continuous variables. Reveals form, direction, and strength of a relationship.',
+            weaknesses: 'Can suffer from overplotting with very large datasets, making individual points indistinguishable.',
+            compatibleDataCategory: 'quant_pair_data', // New property
+            xAxisInfo: {
+                label: 'X-Axis Value (e.g., Price)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the X-axis. `domain` covers the min/max of X values.'
+            },
+            yAxisInfo: {
+                label: 'Y-Axis Value (e.g., Units Sold)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` covers the min/max of Y values.'
+            },
+            sampleDataStructure: `const data = [
+    { x: 10, y: 200, id: 'Point_1', metadata: { type: 'A', status: 'active' } },
+    { x: 12, y: 180, id: 'Point_2', metadata: { type: 'B', status: 'inactive' } },
+    { x: 15, y: 150, id: 'Point_3', metadata: { type: 'A', status: 'active' } },
+    { x: 18, y: 140, id: 'Point_4', metadata: { type: 'C', status: 'active' } },
+    { x: 20, y: 120, id: 'Point_5', metadata: { type: 'B', status: 'inactive' } },
+    { x: 22, y: 100, id: 'Point_6', metadata: { type: 'A', status: 'active' } },
+    { x: 25, y: 80, id: 'Point_7', metadata: { type: 'C', status: 'active' } },
+    { x: 8, y: 210, id: 'Point_8', metadata: { type: 'B', status: 'active' } },
+    { x: 28, y: 70, id: 'Point_9', metadata: { type: 'A', status: 'inactive' } },
+    { x: 17, y: 160, id: 'Point_10', metadata: { type: 'C', status: 'active' } }
+];`,
             renderFunction: renderScatterPlot
         },
         {
@@ -1901,17 +2590,26 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color Coding',
             dataConstraints: 'Requires three quantitative variables.',
             typicalUseCases: 'Analyzing GDP, life expectancy, and population; comparing companies by revenue, profit, and employee count.',
-          //  strengths: 'Extends a scatter plot to encode a third dimension using bubble size.',
-          //  weaknesses: 'Human perception of area is less precise than position, making the 3rd variable harder to judge.',
-            sampleDataStructure: `const data = {
-    datasets: [{
-        label: 'Bubble Points',
-        data: [
-            {x: 20, y: 30, r: 15}, // x, y, bubble radius
-            {x: 40, y: 10, r: 25}
-        ] // Array of {x, y, r} objects
-    }]
-};`,
+            strengths: 'Extends a scatter plot to encode a third dimension using bubble size.',
+            weaknesses: 'Human perception of area is less precise than position, making the 3rd variable harder to judge.',
+            compatibleDataCategory: 'quant_pair_data', // New property
+            xAxisInfo: {
+                label: 'X-Axis Value (e.g., GDP)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the X-axis. `domain` covers the min/max of X values.'
+            },
+            yAxisInfo: {
+                label: 'Y-Axis Value (e.g., Life Expectancy)',
+                scaleType: 'd3.scaleLinear',
+                config: 'Maps quantitative values to a linear range on the Y-axis. `domain` covers the min/max of Y values.'
+            },
+            sampleDataStructure: `const data = [
+    { x: 20, y: 30, size: 15, id: 'Country A', metadata: { type: 'Developed', continent: 'Europe' } },
+    { x: 40, y: 10, size: 25, id: 'Country B', metadata: { type: 'Developing', continent: 'Asia' } },
+    { x: 32, y: 50, size: 18, id: 'Country C', metadata: { type: 'Developed', continent: 'North America' } },
+    { x: 15, y: 25, size: 22, id: 'Country D', metadata: { type: 'Developing', continent: 'Africa' } },
+    { x: 50, y: 40, size: 10, id: 'Country E', metadata: { type: 'Developed', continent: 'Europe' } }
+];`,
             renderFunction: renderBubbleChart
         },
         {
@@ -1924,14 +2622,24 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Grid',
             dataConstraints: 'Requires two variables (categorical or quantitative) where the relationship or density is represented by color.',
             typicalUseCases: 'Correlation matrices, cross-tabulations, density maps for very large datasets.',
-          //  strengths: 'Efficiently shows relationships between two categorical variables or density in large datasets. Good for identifying patterns in tabular data.',
-          //  weaknesses: 'Can be difficult to interpret precise values without labels. Highly dependent on color scale choice.',
+            strengths: 'Efficiently shows relationships between two categorical variables or density in large datasets. Good for identifying patterns in tabular data.',
+            weaknesses: 'Can be difficult to interpret precise values without labels. Highly dependent on color scale choice.',
+            compatibleDataCategory: 'specific_data_structures', // New property
+            xAxisInfo: {
+                label: 'X Category',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete categories to bands along the X-axis. `padding` controls spacing between cells.'
+            },
+            yAxisInfo: {
+                label: 'Y Category',
+                scaleType: 'd3.scaleBand',
+                config: 'Maps discrete categories to bands along the Y-axis. `padding` controls spacing between cells.'
+            },
             sampleDataStructure: `const data = [
-    { x: 'Category A', y: 'Property 1', value: 10 },
-    { x: 'Category A', y: 'Property 2', value: 20 },
-    { x: 'Category B', y: 'Property 1', value: 15 },
-    { x: 'Category B', y: 'Property 2', value: 25 }
-]; // Array of {x, y, value} objects for a categorical grid`,
+    { x: 'Region A', y: 'Product 1', value: 10, type: 'High' }, { x: 'Region A', y: 'Product 2', value: 20, type: 'Medium' }, { x: 'Region A', y: 'Product 3', value: 15, type: 'Low' },
+    { x: 'Region B', y: 'Product 1', value: 25, type: 'High' }, { x: 'Region B', y: 'Product 2', value: 5, type: 'Low' }, { x: 'Region B', y: 'Product 3', value: 30, type: 'High' },
+    { x: 'Region C', y: 'Product 1', value: 18, type: 'Medium' }, { x: 'Region C', y: 'Product 2', value: 12, type: 'Low' }, { x: 'Region C', y: 'Product 3', value: 22, type: 'Medium' }
+];`,
             renderFunction: renderHeatmap
         },
         {
@@ -1944,20 +2652,31 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires flow data (source, target, quantity/weight).',
             typicalUseCases: 'Energy flow, customer conversion funnels, money flow, user paths.',
-         //   strengths: 'Excellent for visualizing the magnitude of flows through a multi-stage process. Highlights bottlenecks or main pathways.',
-         //   weaknesses: 'Requires specific data structure. Can become cluttered with too many flows or complex stages.',
+            strengths: 'Excellent for visualizing the magnitude of flows through a multi-stage process. Highlights bottlenecks or main pathways.',
+            weaknesses: 'Requires specific data structure. Can become cluttered with too many flows or complex stages.',
+            compatibleDataCategory: 'network_hierarchy_data', // New property
+            xAxisInfo: {
+                label: 'Stages/Nodes',
+                scaleType: 'Implicit (positional)',
+                config: 'Nodes are positioned along the X-axis to represent stages in a flow. No explicit D3 scale.'
+            },
+            yAxisInfo: {
+                label: 'Flow Magnitude',
+                scaleType: 'Implicit (positional)',
+                config: 'Flows (links) are positioned along the Y-axis based on their value. No explicit D3 scale.'
+            },
             sampleDataStructure: `const data = {
     nodes: [ // List of nodes/stages
-        { id: 'Source 1' }, { id: 'Source 2' },
-        { id: 'Stage A' }, { id: 'Stage B' },
-        { id: 'Destination 1' }, { id: 'Destination 2' }
+        { id: 'Source_1', name: 'Source 1', type: 'Input' }, { id: 'Source_2', name: 'Source 2', type: 'Input' },
+        { id: 'Stage_A', name: 'Stage A', type: 'Process' }, { id: 'Stage_B', name: 'Stage B', type: 'Process' },
+        { id: 'Dest_1', name: 'Destination 1', type: 'Output' }, { id: 'Dest_2', name: 'Destination 2', type: 'Output' }
     ],
     links: [ // List of links/flows
-        { source: 'Source 1', target: 'Stage A', value: 100 },
-        { source: 'Source 2', target: 'Stage A', value: 50 },
-        { source: 'Stage A', target: 'Stage B', value: 120 },
-        { source: 'Stage B', target: 'Destination 1', value: 70 },
-        { source: 'Stage B', target: 'Destination 2', value: 50 }
+        { source: 'Source_1', target: 'Stage_A', value: 100, flow_type: 'Material' },
+        { source: 'Source_2', target: 'Stage_A', value: 50, flow_type: 'Material' },
+        { source: 'Stage_A', target: 'Stage_B', value: 120, flow_type: 'Product' },
+        { source: 'Stage_B', target: 'Dest_1', value: 70, flow_type: 'Final Product' },
+        { source: 'Stage_B', target: 'Dest_2', value: 50, flow_type: 'Waste' }
     ]
 };`,
             renderFunction: null // Complex D3.js implementation, often requires specific layouts or libraries
@@ -1972,17 +2691,30 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'N/A',
             dataConstraints: 'Requires data with interconnected relationships (parent-child or network connections).',
             typicalUseCases: 'Organizational charts, social networks, website maps, file categorization.',
-          //  strengths: 'Visually represents complex relationships between entities. Can clearly show hierarchies or connections.',
-          //  weaknesses: 'Can become messy and unreadable with many nodes or links. Difficult to discern patterns in large networks.',
+            strengths: 'Visually represents complex relationships between entities. Can clearly show hierarchies or connections.',
+            weaknesses: 'Can become messy and unreadable with many nodes or links. Difficult to discern patterns in large networks.',
+            compatibleDataCategory: 'network_hierarchy_data', // New property
+            xAxisInfo: {
+                label: 'N/A (Force-directed layout)',
+                scaleType: 'Implicit (positional)',
+                config: 'Node X-positions are determined by a force simulation to minimize overlaps and reveal clusters. No explicit D3 scale.'
+            },
+            yAxisInfo: {
+                label: 'N/A (Force-directed layout)',
+                scaleType: 'Implicit (positional)',
+                config: 'Node Y-positions are determined by a force simulation. No explicit D3 scale.'
+            },
             sampleDataStructure: `const data = {
     nodes: [ // List of nodes
-        { id: 'A', name: 'Node A' },
-        { id: 'B', name: 'Node B' },
-        { id: 'C', name: 'Node C' }
+        { id: 'A', name: 'Node A', type: 'Person', department: 'HR' },
+        { id: 'B', name: 'Node B', type: 'Person', department: 'Finance' },
+        { id: 'C', name: 'Node C', type: 'Project', status: 'Active' },
+        { id: 'D', name: 'Node D', type: 'Person', department: 'HR' }
     ],
     links: [ // List of links
-        { source: 'A', target: 'B' },
-        { source: 'B', target: 'C' }
+        { source: 'A', target: 'B', relationship: 'Collaborates' },
+        { source: 'B', target: 'C', relationship: 'Manages' },
+        { source: 'A', target: 'D', relationship: 'Reports To' }
     ]
 };`,
             renderFunction: renderNodeLinkDiagram
@@ -1997,13 +2729,26 @@ document.addEventListener('DOMContentLoaded', function () {
             groupingSupport: 'Color Coding',
             dataConstraints: 'Requires many quantitative variables.',
             typicalUseCases: 'Discovering patterns in high-dimensional data, comparing entity profiles.',
-          //  strengths: 'Allows visualization of many dimensions at once. Good for identifying clusters and patterns in multivariate data.',
-          //  weaknesses: 'Can become cluttered with many data points or variables. Difficult to read precise values.',
+            strengths: 'Allows visualization of many dimensions at once. Good for identifying clusters and patterns in multivariate data.',
+            weaknesses: 'Can become cluttered with many data points or variables. Difficult to read precise values.',
+            compatibleDataCategory: 'specific_data_structures', // New property
+            xAxisInfo: {
+                label: 'Variables/Dimensions',
+                scaleType: 'd3.scalePoint',
+                config: 'Maps each variable (dimension) to a distinct vertical axis position along the X-axis. `padding` controls spacing.'
+            },
+            yAxisInfo: {
+                label: 'Value (for each variable)',
+                scaleType: 'd3.scaleLinear (per axis)',
+                config: 'Each vertical axis has its own linear scale mapping the range of values for that specific variable. `domain` is based on the extent of values for each variable.'
+            },
             sampleDataStructure: `const data = [
-    { var1: 10, var2: 50, var3: 20 },
-    { var1: 20, var2: 40, var3: 25 },
-    { var1: 15, var2: 55, var3: 18 }
-]; // Array of objects, each property representing a variable`,
+    { var1: 10, var2: 50, var3: 20, var4: 80, item: 'Item 1', group: 'G1' },
+    { var1: 20, var2: 40, var3: 25, var4: 70, item: 'Item 2', group: 'G2' },
+    { var1: 15, var2: 55, var3: 18, var4: 90, item: 'Item 3', group: 'G1' },
+    { var1: 25, var2: 45, var3: 30, var4: 60, item: 'Item 4', group: 'G2' },
+    { var1: 30, var2: 35, var3: 15, var4: 75, item: 'Item 5', group: 'G1' }
+];`,
             renderFunction: renderParallelCoordinatesPlot
         }
     ];
@@ -2014,12 +2759,63 @@ document.addEventListener('DOMContentLoaded', function () {
     const recommendationsContainer = document.getElementById('chart-recommendations');
     const recommendationsSubtitle = document.getElementById('recommendations-subtitle');
     const fullGalleryContainer = document.getElementById('full-gallery');
-    const detailedChartPropertiesTableBody = document.querySelector('#detailed-chart-properties-table tbody'); // Updated ID
+    const detailedChartPropertiesTableBody = document.querySelector('#detailed-chart-properties-table tbody');
 
     let selectedIntent = null;
     let selectedDataType = null;
-    // No need for activeCharts array to destroy Chart.js instances anymore
-    // D3.js charts are rendered by clearing the container HTML.
+
+    /**
+     * Calls the Gemini API to get a pro-tip for a given chart.
+     * @param {Object} chartData - The data for the chart.
+     * @param {HTMLElement} proTipBoxElement - The HTML element to display the tip.
+     * @param {HTMLElement} buttonElement - The button that triggered the call.
+     */
+    async function getProTip(chartData, proTipBoxElement, buttonElement) {
+        proTipBoxElement.innerHTML = '<div class="loading-spinner"></div> Generating Pro-Tip...';
+        buttonElement.disabled = true; // Disable button during loading
+
+        const prompt = `Given the following chart details, generate a concise 'Pro-Tip' for effectively using this chart type. Focus on a key aspect that leverages its strengths or mitigates its weaknesses.
+
+Chart Name: ${chartData.name}
+Description: ${chartData.description}
+Strengths: ${chartData.strengths}
+Weaknesses: ${chartData.weaknesses}
+Typical Use Cases: ${chartData.typicalUseCases}
+Data Structure Constraints: ${chartData.dataConstraints}
+
+Pro-Tip:`;
+
+        let chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const apiKey = ""; // If you want to use models other than gemini-2.0-flash or imagen-3.0-generate-002, provide an API key here. Otherwise, leave this as-is.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const text = result.candidates[0].content.parts[0].text;
+                proTipBoxElement.innerHTML = `<strong>✨ Pro-Tip:</strong> ${text}`;
+            } else {
+                proTipBoxElement.innerHTML = 'Error: Could not generate pro-tip. Please try again.';
+                console.error('Gemini API response structure unexpected:', result);
+            }
+        } catch (error) {
+            proTipBoxElement.innerHTML = 'Error: Failed to connect to Gemini API.';
+            console.error('Error calling Gemini API:', error);
+        } finally {
+            buttonElement.disabled = false; // Re-enable button
+        }
+    }
+
 
     function renderIntents() {
         intents.forEach(intent => {
@@ -2075,8 +2871,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedIntent) {
             filteredCharts = filteredCharts.filter(c => c.intent.includes(selectedIntent));
         }
+        
+        // New logic for dynamic data structure selection
         if (selectedDataType) {
-             filteredCharts = filteredCharts.filter(c => c.dataType.includes(selectedDataType));
+            const selectedDataTypeCategory = dataTypes.find(dt => dt.id === selectedDataType)?.category;
+            if (selectedDataTypeCategory) {
+                // Filter charts that are compatible with the selected data category
+                filteredCharts = filteredCharts.filter(c => c.compatibleDataCategory === selectedDataTypeCategory);
+            } else {
+                // If a dataType is selected but has no category, filter by its direct dataType
+                filteredCharts = filteredCharts.filter(c => c.dataType.includes(selectedDataType));
+            }
         }
         
         if (!selectedIntent) {
@@ -2106,6 +2911,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chartWrapper.className = 'bg-white p-4 md:p-6 rounded-xl shadow-lg border border-stone-200 flex flex-col';
         
         const chartContainerId = `chart-viz-${chartData.id}-${container.id}`; // Unique ID for the D3 container
+        const proTipBoxId = `pro-tip-box-${chartData.id}-${container.id}`; // Unique ID for the pro-tip box
 
         let chartContentHtml = '';
         if (chartData.renderFunction) {
@@ -2132,6 +2938,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     <p class="text-stone-600">${chartData.dataConstraints}</p>
                 </div>
                 <div>
+                    <h5 class="font-semibold text-stone-800">X-Axis Details:</h5>
+                    <p class="text-stone-600"><strong>Label:</strong> ${chartData.xAxisInfo.label}</p>
+                    <p class="text-stone-600"><strong>Scale Type:</strong> <code>${chartData.xAxisInfo.scaleType}</code></p>
+                    <p class="text-stone-600"><strong>Configuration:</strong> ${chartData.xAxisInfo.config}</p>
+                </div>
+                <div>
+                    <h5 class="font-semibold text-stone-800">Y-Axis Details:</h5>
+                    <p class="text-stone-600"><strong>Label:</strong> ${chartData.yAxisInfo.label}</p>
+                    <p class="text-stone-600"><strong>Scale Type:</strong> <code>${chartData.yAxisInfo.scaleType}</code></p>
+                    <p class="text-stone-600"><strong>Configuration:</strong> ${chartData.yAxisInfo.config}</p>
+                </div>
+                <div>
                     <h5 class="font-semibold text-stone-800">Typical Use Cases:</h5>
                     <p class="text-stone-600">${chartData.typicalUseCases}</p>
                 </div>
@@ -2147,6 +2965,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <h5 class="font-semibold text-stone-800">Required Data Structure:</h5>
                     <pre><code class="language-javascript">${chartData.sampleDataStructure}</code></pre>
                 </div>
+                <button id="pro-tip-btn-${chartData.id}-${container.id}" class="mt-4 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition duration-300">
+                    Get Pro-Tip ✨
+                </button>
+                <div id="${proTipBoxId}" class="pro-tip-box hidden"></div>
             </div>
         `;
         container.appendChild(chartWrapper);
@@ -2155,9 +2977,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (chartData.renderFunction) {
             // Use a timeout to ensure the container is rendered and has dimensions
             setTimeout(() => {
-                chartData.renderFunction(chartContainerId);
+                chartData.renderFunction(chartContainerId, chartData); // Pass chartData to render function
             }, 0);
         }
+
+        // Add event listener for the Pro-Tip button
+        const proTipButton = document.getElementById(`pro-tip-btn-${chartData.id}-${container.id}`);
+        const proTipBox = document.getElementById(proTipBoxId);
+        proTipButton.addEventListener('click', () => {
+            proTipBox.classList.remove('hidden'); // Show the box
+            getProTip(chartData, proTipBox, proTipButton);
+        });
     }
 
     // Updated function to render the detailed chart properties table
@@ -2172,8 +3002,8 @@ document.addEventListener('DOMContentLoaded', function () {
             row.insertCell().textContent = chart.dimensionality;
             row.insertCell().textContent = chart.groupingSupport;
             row.insertCell().textContent = chart.typicalUseCases;
-           /*  row.insertCell().textContent = chart.strengths;
-            row.insertCell().textContent = chart.weaknesses; */
+            row.insertCell().textContent = chart.strengths;
+            row.insertCell().textContent = chart.weaknesses;
             row.insertCell().textContent = chart.dataConstraints;
             
             const dataStructureCell = row.insertCell();
