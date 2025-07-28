@@ -18,44 +18,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Adds a legend to the SVG.
-     * @param {d3.Selection} svg - The D3 selection of the main chart group (already translated by margins).
+     * Adds a legend to the chart container, below the SVG.
+     * @param {HTMLElement} containerElement - The HTML container element where the chart SVG is.
      * @param {Array<string>} legendItems - Array of strings for legend labels.
      * @param {d3.ScaleOrdinal} colorScale - The D3 color scale used in the chart.
-     * @param {number} chartWidth - Width of the actual chart drawing area (excluding margins).
-     * @param {number} topMargin - Top margin used for the chart.
-     * @param {number} xOffset - Additional X offset for the legend.
-     * @param {number} yOffset - Additional Y offset for the legend.
      */
-    function addLegend(svg, legendItems, colorScale, chartWidth, topMargin, xOffset = 0, yOffset = 0) {
-        const legend = svg.append("g")
-            .attr("class", "legend")
-            .attr("transform", `translate(${xOffset}, ${-topMargin + 10 + yOffset})`); // Position at top-left of chart area, within top margin
+    function addLegendBelowChart(containerElement, legendItems, colorScale) {
+        const legendDiv = d3.select(containerElement).append("div")
+            .attr("class", "chart-legend");
 
-        let currentX = 0;
         legendItems.forEach((item, i) => {
-            const legendRow = legend.append("g")
-                .attr("transform", `translate(${currentX}, 0)`);
+            const legendItem = legendDiv.append("div")
+                .attr("class", "legend-item");
 
-            legendRow.append("rect")
-                .attr("width", 12)
-                .attr("height", 12)
-                .attr("fill", colorScale(item))
-                .attr("rx", 3)
-                .attr("ry", 3)
-                .attr("stroke", "#ccc")
-                .attr("stroke-width", 0.5);
+            legendItem.append("div")
+                .attr("class", "legend-color")
+                .style("background-color", colorScale(item));
 
-            const textElement = legendRow.append("text")
-                .attr("x", 18)
-                .attr("y", 6)
-                .attr("dy", "0.35em")
-                .style("text-anchor", "start")
-                .style("font-size", "10px")
+            legendItem.append("span")
                 .text(item);
-
-            const textWidth = textElement.node().getBBox().width;
-            currentX += 12 + 6 + textWidth + 15; // Rect width + spacing + text width + padding for next item
         });
     }
 
@@ -235,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Product Sales by Quarter");
 
         // Legend
-        addLegend(svg, keys, color, width, margin.top);
+        addLegendBelowChart(container.node(), keys, color);
     }
 
     function renderLineChart(containerId, chartData) {
@@ -322,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Tracking Profit Over Time");
 
         // Legend
-        addLegend(svg, keys, color, width, margin.top);
+        addLegendBelowChart(container.node(), keys, color);
     }
 
     function renderDotPlot(containerId, chartData) {
@@ -488,18 +469,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-weight", "bold")
             .text("Player Profiles Comparison");
 
-        // Legend for profiles - positioned relative to the centered SVG group
+        // Legend for profiles - positioned below the chart container
         const legendItems = exampleData.map(d => d.label);
         const legendColorScale = d3.scaleOrdinal()
             .domain(legendItems)
             .range(strokeColor.range()); // Use stroke colors for legend
 
-        // Calculate offsets to place legend at top-right of the overall SVG container
-        // Since 'svg' is already translated to center (width/2, height/2),
-        // we need to offset back to top-left corner of the original container, then move to desired spot.
-        // xOffset: (width/2) to get to right edge of original container - legend width
-        // yOffset: (-height/2) to get to top edge of original container + small padding
-        addLegend(svg, legendItems, legendColorScale, width, 0, width / 2 - 100, -height / 2 + 10); // Adjust offsets as needed
+        addLegendBelowChart(container.node(), legendItems, legendColorScale);
     }
 
     function renderPieChart(containerId, chartData) {
@@ -557,13 +533,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-weight", "bold")
             .text("Department Budget Distribution");
 
-        // Legend - positioned relative to the centered SVG group
+        // Legend - positioned below the chart container
         const legendItems = exampleData.map(d => d.label);
         const legendColorScale = d3.scaleOrdinal()
             .domain(legendItems)
             .range(color.range());
 
-        addLegend(svg, legendItems, legendColorScale, width, 0, radius + 10, -radius + 10); // Adjust offsets as needed
+        addLegendBelowChart(container.node(), legendItems, legendColorScale);
     }
 
     function renderStackedBarChart(containerId, chartData) {
@@ -654,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Sales Composition by Product per Quarter");
 
         // Legend
-        addLegend(svg, keys, color, width, margin.top);
+        addLegendBelowChart(container.node(), keys, color);
     }
 
     function renderStackedAreaChart(containerId, chartData) {
@@ -750,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Monthly Sales Composition");
 
         // Legend
-        addLegend(svg, keys, d3.scaleOrdinal().range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]).domain(keys), width, margin.top);
+        addLegendBelowChart(container.node(), keys, d3.scaleOrdinal().range(["#14b8a6", "#3b82f6", "#f97316", "#a855f7"]).domain(keys));
     }
 
     function renderHistogram(containerId, chartData) {
@@ -1069,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Comparing Result Distributions");
 
         // Legend
-        addLegend(svg, groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups), width, margin.top);
+        addLegendBelowChart(container.node(), groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups));
     }
 
     function renderScatterPlot(containerId, chartData) {
@@ -1152,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Legend if multiple types exist
         if (types.length > 1 || types[0] !== 'Default') {
-            addLegend(svg, types, color, width, margin.top);
+            addLegendBelowChart(container.node(), types, color);
         }
     }
 
@@ -1243,7 +1219,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Legend if multiple types exist
         if (types.length > 1 || types[0] !== 'Default') {
-            addLegend(svg, types, d3.scaleOrdinal().range(["#f97316", "#3b82f6", "#14b8a6", "#a855f7"]).domain(types), width, margin.top);
+            addLegendBelowChart(container.node(), types, d3.scaleOrdinal().range(["#f97316", "#3b82f6", "#14b8a6", "#a855f7"]).domain(types));
         }
     }
 
@@ -1338,7 +1314,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .domain(legendItems.map(d => d.label))
             .range(legendItems.map(d => d.color));
 
-        addLegend(svg, legendItems.map(d => d.label), legendColorScale, width, margin.top);
+        addLegendBelowChart(container.node(), legendItems.map(d => d.label), legendColorScale);
     }
 
     function renderSlopegraph(containerId, chartData) {
@@ -1454,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .domain(legendItems.map(d => d.label))
             .range(legendItems.map(d => d.color));
 
-        addLegend(svg, legendItems.map(d => d.label), legendColorScale, width, margin.top);
+        addLegendBelowChart(container.node(), legendItems.map(d => d.label), legendColorScale);
     }
 
     function renderTreemap(containerId, chartData) {
@@ -1541,7 +1517,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Legend for top-level categories
         const topLevelCategories = root.children.map(d => d.data.name);
-        addLegend(svg, topLevelCategories, color, width, margin.top);
+        addLegendBelowChart(container.node(), topLevelCategories, color);
     }
 
     function renderWaffleChart(containerId, chartData) {
@@ -1698,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Comparing Distribution Shapes");
 
         // Legend
-        addLegend(svg, groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups), width, margin.top);
+        addLegendBelowChart(container.node(), groups, d3.scaleOrdinal().range(["#a855f7", "#3b82f6", "#14b8a6"]).domain(groups));
     }
 
     function renderHeatmap(containerId, chartData) {
@@ -1786,6 +1762,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .text("Categorical Heatmap");
 
         // Simple color bar legend for continuous scale (manual for now)
+        // This legend is part of the SVG, so it won't be moved by addLegendBelowChart
         const legendSvg = svg.append("g")
             .attr("class", "legend")
             .attr("transform", `translate(${width + 20}, ${height / 2 - 50})`); // Position right of chart
@@ -1906,7 +1883,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Legend if categories exist
         if (categories.length > 0) {
-            addLegend(svg, categories, color, width, margin.top);
+            addLegendBelowChart(container.node(), categories, color);
         }
     }
 
@@ -2014,8 +1991,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Legend for node types
         if (nodeTypes.length > 0) {
-            // Position legend at top-right of the overall SVG container
-            addLegend(svg, nodeTypes, color, width, 0, width - 100, 10); // Adjust offsets as needed
+            addLegendBelowChart(container.node(), nodeTypes, color);
         }
     }
 
@@ -2114,7 +2090,7 @@ document.addEventListener('DOMContentLoaded', function () {
             description: 'A specialized and highly effective chart for comparing a single performance measure against a target or benchmark.',
             intent: ['comparison'],
             dataType: ['univariate_quantitative'],
-            dimensionality: 'Univariate',
+            dimensionality: 'Univariate (1 Quant)',
             groupingSupport: 'N/A',
             dataConstraints: 'Requires a single performance value, a target, and qualitative ranges (optional).',
             typicalUseCases: 'Monitoring performance against goals, dashboards, progress reports.',
@@ -2965,8 +2941,8 @@ Pro-Tip:`;
                     <h5 class="font-semibold text-stone-800">Required Data Structure:</h5>
                     <pre><code class="language-javascript">${chartData.sampleDataStructure}</code></pre>
                 </div>
-                <button id="pro-tip-btn-${chartData.id}-${container.id}" class="mt-4 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition duration-300">
-                    Get Pro-Tip ✨
+                <button id="pro-tip-btn-${chartData.id}-${container.id}" >
+                    
                 </button>
                 <div id="${proTipBoxId}" class="pro-tip-box hidden"></div>
             </div>
