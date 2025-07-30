@@ -7,6 +7,7 @@
     <title>Data Visualization Selection Framework</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script> <!-- D3.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script> <!-- D3-Sankey CDN for Sankey Diagram -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -30,7 +31,7 @@
                     Concepts</a>
                 <a href="#data-structure-table" class="text-stone-600 hover:text-teal-600 transition duration-300">Chart
                     Details Table</a>
-                <a href="#unified-data-structures"
+                <a href="#unified-data-structures-charts"
                     class="text-stone-600 hover:text-teal-600 transition duration-300">Unified Data Structures</a>
             </div>
             <div class="md:hidden">
@@ -40,7 +41,7 @@
                     <option value="#gallery">Chart Gallery</option>
                     <option value="#concepts">Advanced Concepts</option>
                     <option value="#data-structure-table">Chart Details Table</option>
-                    <option value="#unified-data-structures">Unified Data Structures</option>
+                    <option value="#unified-data-structures-charts">Unified Data Structures</option>
                 </select>
             </div>
         </nav>
@@ -121,7 +122,8 @@
                     <p class="text-stone-600">This focuses on describing the characteristics of a single variable in
                         isolation. The goal is to understand its distribution, central tendency, and spread. Charts like
                         <span class="font-semibold">Histograms</span> and <span class="font-semibold">Box Plots</span>
-                        are primary tools here.</p>
+                        are primary tools here.
+                    </p>
                 </div>
                 <div class="bg-white p-6 rounded-lg shadow-md border border-stone-200">
                     <h4 class="font-bold text-xl mb-2 text-teal-700">Bivariate Visualization</h4>
@@ -179,109 +181,24 @@
 
         <hr class="my-20 border-stone-200">
 
-        <section id="unified-data-structures" class="mb-16">
+        <section id="unified-data-structures-charts" class="mb-16">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-stone-900">Unified Data Structures for Charts</h2>
+                <h2 class="text-3xl md:text-4xl font-bold text-stone-900">Unified Data Structures in Action</h2>
                 <p class="max-w-3xl mx-auto text-lg text-stone-600 mt-4">
-                    This table illustrates common data structures that can be used across various chart types, allowing
-                    for flexibility in data visualization.
+                    See how a single, well-structured data format can power multiple chart types. Select a data category to view compatible charts and their shared data structure.
                 </p>
             </div>
-            <div class="overflow-x-auto bg-white p-6 rounded-xl shadow-lg border border-stone-200">
-                <table id="unified-data-structures-table" class="min-w-full text-sm">
-                    <thead>
-                        <tr>
-                            <th class="py-3 px-4">Chart Category Name</th>
-                            <th class="py-3 px-4">Shared Charts</th>
-                            <th class="py-3 px-4">Common Data Structure</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Categorical & Quantitative (Single Value)</td>
-                            <td>Bar Chart, Dot Plot, Pie Chart, Waffle Chart</td>
-                            <td>
-                                <pre><code class="language-javascript">const data = [
-    { label: 'Category A', value: 100, details: { region: 'North', status: 'Active' } },
-    { label: 'Category B', value: 150, details: { region: 'South', status: 'Inactive' } },
-    { label: 'Category C', value: 75, details: { region: 'East', status: 'Active' } }
-];</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Categorical & Quantitative (Multiple Series)</td>
-                            <td>Grouped Bar Chart, Stacked Bar Chart, Stacked Area Chart, Line Chart (Multiple Lines)
-                            </td>
-                            <td>
-                                <pre><code class="language-javascript">const data = [
-    { label: 'Q1', series: { 'Sales A': 30, 'Sales B': 20, 'Sales C': 15 }, total: 65 },
-    { label: 'Q2', series: { 'Sales A': 40, 'Sales B': 25, 'Sales C': 10 }, total: 75 },
-    { label: 'Q3', series: { 'Sales A': 20, 'Sales B': 35, 'Sales C': 25 }, total: 80 }
-];</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Distribution Data (Single/Multiple Groups)</td>
-                            <td>Histogram, Density Plot, Box Plot, Violin Plot</td>
-                            <td>
-                                <pre><code class="language-javascript">const data = [
-    { group: 'Group 1', values: [10, 20, 30, 40, 50, 25, 35, 45, 15, 5] },
-    { group: 'Group 2', values: [15, 25, 35, 45, 55, 30, 40, 50, 20, 10] },
-    { group: 'Group 3', values: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50] }
-];</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Quantitative Pair Data (2 or 3 Variables)</td>
-                            <td>Scatter Plot, Bubble Chart</td>
-                            <td>
-                                <pre><code class="language-javascript">const data = [
-    { x: 10, y: 20, size: 5, id: 'Point_1', metadata: { type: 'A', status: 'active' } },
-    { x: 12, y: 18, size: 7, id: 'Point_2', metadata: { type: 'B', status: 'inactive' } },
-    { x: 15, y: 25, size: 6, id: 'Point_3', metadata: { type: 'A', status: 'active' } }
-];</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Network/Hierarchy Data (Nodes & Links)</td>
-                            <td>Sankey Diagram, Node-Link Diagram</td>
-                            <td>
-                                <pre><code class="language-javascript">const data = {
-    nodes: [{ id: 'A', name: 'Node A', type: 'Source' }, { id: 'B', name: 'Node B', type: 'Intermediate' }],
-    links: [{ source: 'A', target: 'B', value: 10, flow_type: 'Primary' }]
-};</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Hierarchical Data (Tree Structure)</td>
-                            <td>Treemap</td>
-                            <td>
-                                <pre><code class="language-javascript">const data = {
-    name: "Root",
-    children: [
-        { name: "Category A", value: 100, children: [
-            { name: "Sub A1", value: 60, status: 'Completed' },
-            { name: "Sub A2", value: 40, status: 'Pending' }
-        ]},
-        { name: "Category B", value: 200, children: [] }
-    ]
-};</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Specific Data Structures</td>
-                            <td>Bullet Chart, Slopegraph, Heatmap, Parallel Coordinates Plot</td>
-                            <td>
-                                <pre><code class="language-javascript">// Varies by chart, examples:
-// Bullet Chart: { value: 75, target: 80, ranges: [60, 70, 90], label: 'KPI Performance' }
-// Slopegraph: [{ category: 'Dept A', before: 10, after: 15, change: 5 }, { category: 'Dept B', before: 20, after: 18, change: -2 }]
-// Heatmap: [{ x: 'X1', y: 'Y1', value: 10, type: 'High' }, { x: 'X1', y: 'Y2', value: 5, type: 'Low' }]
-// Parallel Coordinates: [{ var1: 10, var2: 50, var3: 20, var4: 80, item: 'Item 1' }]
-</code></pre>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="unified-data-category-selector" class="flex flex-wrap justify-center gap-4 mb-8">
+                <!-- Buttons for unified data categories will go here -->
+            </div>
+
+            <div id="unified-charts-display" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Charts for the selected unified data category will be rendered here -->
+            </div>
+
+            <div id="unified-data-structure-code" class="p-6 bg-gray-800 text-white rounded-xl shadow-lg mt-8 hidden">
+                <h3 class="text-2xl font-bold text-gray-100 mb-4 text-center">Shared Data Structure for this Category:</h3>
+                <pre id="unified-data-structure-code-display" class="bg-gray-900 p-4 rounded-lg overflow-auto text-sm leading-relaxed"></pre>
             </div>
         </section>
 

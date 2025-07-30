@@ -1,103 +1,306 @@
 body {
-            font-family: 'Inter', sans-serif;
-            scroll-behavior: smooth;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 320px; /* Base height for D3 charts */
-            max-height: 400px;
-            display: flex; /* Ensure flex for centering SVG */
-            align-items: center;
-            justify-content: center;
-            background-color: #ffffff; /* White background for charts */
-            border-radius: 0.5rem; /* rounded-lg */
-            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
-        }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 350px;
-            }
-        }
-        .intent-card.selected {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            border-color: #0d9488;
-        }
-        .datatype-btn.selected {
-            background-color: #0d9488;
-            color: white;
-        }
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-            font-size: 0.85em;
-            color: #333;
-            white-space: pre-wrap; /* Ensures text wraps */
-            word-wrap: break-word; /* Ensures long words break */
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #e5e7eb; /* Tailwind gray-200 */
-            padding: 12px 15px;
-            text-align: left;
-            vertical-align: top;
-        }
-        th {
-            background-color: #f9fafb; /* Tailwind gray-50 */
-            font-weight: 600;
-            color: #374151; /* Tailwind gray-700 */
-        }
-        tr:nth-child(even) {
-            background-color: #f9fafb; /* Tailwind gray-50 */
-        }
-        .pro-tip-box {
-            background-color: #ecfdf5; /* Tailwind teal-50 */
-            border-left: 4px solid #10b981; /* Tailwind green-500 */
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 0.375rem; /* rounded-md */
-            color: #065f46; /* Tailwind green-800 */
-            font-size: 0.9rem;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #14b8a6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 8px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Legend Styling */
-        .legend {
-            font-size: 10px;
-            /* transform: translateY(-5px); Adjust position slightly up */
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            margin-right: 6px;
-            border: 0.5px solid #ccc; /* Subtle border for clarity */
-        }
+    font-family: 'Inter', sans-serif;
+    scroll-behavior: smooth;
+    background-color: #f0f4f8;
+    /* Light blue-gray background */
+    color: #334155;
+    /* Dark slate text */
+}
+
+.chart-container {
+    background-color: #ffffff;
+    border-radius: 1rem;
+    /* Rounded corners */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    /* Soft shadow */
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    /* Minimum height for charts */
+    position: relative;
+    /* For responsiveness */
+}
+
+.chart-svg {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    /* Ensure SVG has a minimum height */
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #cbd5e1;
+    /* Light gray stroke */
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-size: 0.875rem;
+    /* Small text for axis labels */
+    fill: #64748b;
+    /* Gray text */
+}
+
+.bar {
+    fill: #3b82f6;
+    /* Blue bar color */
+}
+
+.bar:hover {
+    fill: #2563eb;
+    /* Darker blue on hover */
+}
+
+.slice {
+    stroke: #ffffff;
+    stroke-width: 2px;
+}
+
+.slice-label {
+    font-size: 0.875rem;
+    fill: #ffffff;
+    text-anchor: middle;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.legend-color {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    margin-inline-end: 0.5rem;
+}
+
+.tooltip {
+    position: absolute;
+    text-align: center;
+    padding: 0.5rem;
+    background: #334155;
+    /* Dark background for tooltip */
+    color: #ffffff;
+    border-radius: 0.5rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 100;
+}
+
+/* Specific styles for dot plot */
+.dot {
+    fill: #3b82f6;
+    stroke: #1e40af;
+    stroke-width: 1px;
+}
+
+/* Specific styles for waffle chart */
+.waffle-cell {
+    stroke: #fff;
+    stroke-width: 1px;
+}
+
+/* Specific styles for line chart */
+.line {
+    fill: none;
+    stroke-width: 2px;
+}
+
+.area {
+    opacity: 0.7;
+}
+
+/* Specific styles for node-link diagram */
+.node circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+
+.link {
+    stroke: #999;
+    stroke-opacity: 0.6;
+    stroke-width: 1.5px;
+}
+
+/* Specific styles for Sankey */
+.node rect {
+    fill-opacity: 0.9;
+    shape-rendering: crispEdges;
+    stroke-width: 0;
+}
+
+.link-sankey {
+    fill: none;
+    stroke-opacity: 0.3;
+}
+
+.link-sankey:hover {
+    stroke-opacity: 0.6;
+}
+
+/* Specific styles for Heatmap */
+.cell-heatmap {
+    stroke: #fff;
+    stroke-width: 1px;
+}
+
+/* Specific styles for Parallel Coordinates */
+.background path {
+    stroke: #ddd;
+    stroke-width: 1px;
+}
+
+.foreground path {
+    fill: none;
+    stroke: #3b82f6;
+    stroke-opacity: 0.7;
+    stroke-width: 1.5px;
+}
+
+.axis-pc .title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    fill: #334155;
+}
+
+/* Violin Plot specific styles */
+.violin-area {
+    fill: #60a5fa;
+    opacity: 0.6;
+    stroke: #3b82f6;
+    stroke-width: 1px;
+}
+
+/* Dendrogram and Circle Packing specific styles */
+.node-dendro circle {
+    fill: #999;
+}
+
+.node-dendro text {
+    font: 10px sans-serif;
+}
+
+.link-dendro {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+}
+
+.node-circle-pack circle {
+    fill: #60a5fa;
+    fill-opacity: 0.7;
+    stroke: #3b82f6;
+    stroke-width: 1px;
+}
+
+.node-circle-pack text {
+    font: 10px sans-serif;
+    text-anchor: middle;
+    fill: #334155;
+    pointer-events: none;
+}
+
+.intent-card.selected,
+.datatype-btn.selected,
+.category-btn.selected,
+.chart-type-btn.selected,
+.unified-category-btn.selected {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    border-color: #0d9488;
+    background-color: #0d9488;
+    color: white;
+}
+
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    color: #333;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th,
+td {
+    border: 1px solid #e5e7eb;
+    padding: 12px 15px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+}
+
+tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.pro-tip-box {
+    background-color: #ecfdf5;
+    border-left: 4px solid #10b981;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 0.375rem;
+    color: #065f46;
+    font-size: 0.9rem;
+}
+
+.loading-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #14b8a6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Legend Styling */
+.chart-legend {
+    font-size: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 10px;
+    max-width: 100%;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 8px 4px 0;
+}
